@@ -7,6 +7,8 @@
 pub mod constraint;
 pub mod entity;
 pub mod error;
+pub mod sketch;
+pub mod solver;
 pub mod units;
 
 // Re-export commonly used types
