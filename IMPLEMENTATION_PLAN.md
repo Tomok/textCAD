@@ -238,11 +238,11 @@ use flake
 ```
 
 **Tests:**
-- [ ] `nix flake check` succeeds
-- [ ] `nix develop --command bash -c "rustc --version && z3 --version"` shows versions
-- [ ] `nix develop --command cargo build` succeeds and uses system Z3
-- [ ] Verify Z3 is NOT compiled: `cargo clean && cargo build 2>&1 | grep -c "Compiling z3-sys"` should be 0
-- [ ] GitHub Actions workflow runs successfully (mock project)
+- [x] `nix flake check` succeeds
+- [x] `nix develop --command bash -c "rustc --version && z3 --version"` shows versions
+- [x] `nix develop --command cargo build` succeeds and uses system Z3
+- [x] Verify Z3 is NOT compiled: `cargo clean && cargo build 2>&1 | grep -c "Compiling z3-sys"` should be 0
+- [x] GitHub Actions workflow runs successfully (mock project)
 
 **Documentation:**
 - README.md with Nix setup instructions

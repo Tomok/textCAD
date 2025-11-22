@@ -1,0 +1,14 @@
+[package]
+name = "textcad"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# Z3 with static-link-z3 DISABLED to use system Z3
+z3 = { version = "0.12", default-features = false }
+
+[dev-dependencies]
+proptest = "1.4"
+
+[profile.dev]
+opt-level = 1  # Faster dev builds with Z3
