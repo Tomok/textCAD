@@ -1,6 +1,6 @@
 /target
-/result
 .direnv/
 
 # Nix build artifacts and symlinks
+/result
 textcad-arx
