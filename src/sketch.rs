@@ -3,8 +3,10 @@
 //! The sketch module provides the main interface for creating and managing
 //! geometric entities and constraints using Z3 as the underlying solver.
 
+use generational_arena::Arena;
 use z3::{Context, SatResult, Solver};
 
+use crate::entities::{Point2D, PointId};
 use crate::error::{Result, TextCadError};
 
 /// Main sketch structure that manages geometric entities and constraints
@@ -14,6 +16,8 @@ use crate::error::{Result, TextCadError};
 pub struct Sketch<'ctx> {
     ctx: &'ctx Context,
     solver: Solver<'ctx>,
+    /// Arena for managing Point2D entities
+    points: Arena<Point2D<'ctx>>,
 }
 
 impl<'ctx> Sketch<'ctx> {
@@ -33,7 +37,12 @@ impl<'ctx> Sketch<'ctx> {
     /// ```
     pub fn new(ctx: &'ctx Context) -> Self {
         let solver = Solver::new(ctx);
-        Self { ctx, solver }
+        let points = Arena::new();
+        Self {
+            ctx,
+            solver,
+            points,
+        }
     }
 
     /// Get a reference to the underlying Z3 context
@@ -73,6 +82,59 @@ impl<'ctx> Sketch<'ctx> {
                 "Z3 solver returned unknown result".to_string(),
             )),
         }
+    }
+
+    /// Add a new point to the sketch
+    ///
+    /// Creates a new Point2D with Z3 symbolic variables for its coordinates
+    /// and adds it to the points arena.
+    ///
+    /// # Arguments
+    /// * `name` - Optional name for debugging and display
+    ///
+    /// # Returns
+    /// PointId that can be used to reference this point
+    ///
+    /// # Example
+    /// ```
+    /// use z3::{Config, Context};
+    /// use textcad::sketch::Sketch;
+    ///
+    /// let cfg = Config::new();
+    /// let ctx = Context::new(&cfg);
+    /// let mut sketch = Sketch::new(&ctx);
+    /// let p1 = sketch.add_point(Some("p1".to_string()));
+    /// let p2 = sketch.add_point(None);
+    /// ```
+    pub fn add_point(&mut self, name: Option<String>) -> PointId {
+        let idx = self.points.insert_with(|idx| {
+            let id = PointId::from(idx);
+            Point2D::new(id, self.ctx, name)
+        });
+        PointId::from(idx)
+    }
+
+    /// Get a reference to a point by its ID
+    ///
+    /// # Arguments  
+    /// * `id` - The PointId to look up
+    ///
+    /// # Returns
+    /// Option containing a reference to the Point2D, or None if not found
+    ///
+    /// # Example
+    /// ```
+    /// use z3::{Config, Context};
+    /// use textcad::sketch::Sketch;
+    ///
+    /// let cfg = Config::new();
+    /// let ctx = Context::new(&cfg);
+    /// let mut sketch = Sketch::new(&ctx);
+    /// let id = sketch.add_point(Some("test".to_string()));
+    /// let point = sketch.get_point(id).unwrap();
+    /// ```
+    pub fn get_point(&self, id: PointId) -> Option<&Point2D<'ctx>> {
+        self.points.get(id.into())
     }
 }
 
@@ -167,5 +229,102 @@ mod tests {
 
         assert_eq!(x_value, (6, 1)); // x = 6
         assert_eq!(y_value, (4, 1)); // y = 4
+    }
+
+    #[test]
+    fn test_point_creation() {
+        let cfg = Config::new();
+        let ctx = Context::new(&cfg);
+        let mut sketch = Sketch::new(&ctx);
+
+        let p1 = sketch.add_point(Some("p1".to_string()));
+        let p2 = sketch.add_point(Some("p2".to_string()));
+
+        assert_ne!(p1, p2);
+        assert!(sketch.get_point(p1).is_some());
+        assert!(sketch.get_point(p2).is_some());
+
+        let point1 = sketch.get_point(p1).unwrap();
+        let point2 = sketch.get_point(p2).unwrap();
+
+        assert_eq!(point1.id, p1);
+        assert_eq!(point2.id, p2);
+        assert_eq!(point1.name, Some("p1".to_string()));
+        assert_eq!(point2.name, Some("p2".to_string()));
+    }
+
+    #[test]
+    fn test_point_creation_without_name() {
+        let cfg = Config::new();
+        let ctx = Context::new(&cfg);
+        let mut sketch = Sketch::new(&ctx);
+
+        let p = sketch.add_point(None);
+        let point = sketch.get_point(p).unwrap();
+
+        assert_eq!(point.id, p);
+        assert_eq!(point.name, None);
+        assert!(point.display_name().starts_with("Point"));
+    }
+
+    #[test]
+    fn test_multiple_points_distinct_ids() {
+        let cfg = Config::new();
+        let ctx = Context::new(&cfg);
+        let mut sketch = Sketch::new(&ctx);
+
+        let p1 = sketch.add_point(Some("p1".to_string()));
+        let p2 = sketch.add_point(Some("p2".to_string()));
+        let p3 = sketch.add_point(Some("p3".to_string()));
+
+        // All IDs should be different
+        assert_ne!(p1, p2);
+        assert_ne!(p2, p3);
+        assert_ne!(p1, p3);
+
+        // All points should be retrievable
+        assert!(sketch.get_point(p1).is_some());
+        assert!(sketch.get_point(p2).is_some());
+        assert!(sketch.get_point(p3).is_some());
+
+        // Z3 variables should have different names
+        let point1 = sketch.get_point(p1).unwrap();
+        let point2 = sketch.get_point(p2).unwrap();
+        let point3 = sketch.get_point(p3).unwrap();
+
+        assert!(point1.x.to_string().contains("p1_x"));
+        assert!(point2.x.to_string().contains("p2_x"));
+        assert!(point3.x.to_string().contains("p3_x"));
+    }
+
+    #[test]
+    fn test_point_z3_variable_names() {
+        let cfg = Config::new();
+        let ctx = Context::new(&cfg);
+        let mut sketch = Sketch::new(&ctx);
+
+        let p1 = sketch.add_point(Some("test_point".to_string()));
+        let point = sketch.get_point(p1).unwrap();
+
+        // Verify Z3 variables have correct names
+        let x_str = point.x.to_string();
+        let y_str = point.y.to_string();
+
+        assert!(x_str.contains("test_point_x"));
+        assert!(y_str.contains("test_point_y"));
+    }
+
+    #[test]
+    fn test_get_nonexistent_point() {
+        let cfg = Config::new();
+        let ctx = Context::new(&cfg);
+        let sketch = Sketch::new(&ctx);
+
+        // Create a fake PointId that doesn't exist
+        use crate::entities::PointId;
+        use generational_arena::Index;
+        let fake_id = PointId::from(Index::from_raw_parts(999, 999));
+
+        assert!(sketch.get_point(fake_id).is_none());
     }
 }

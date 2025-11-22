@@ -1,4 +1,4 @@
-use crate::entity::PointId;
+use crate::entities::PointId;
 use crate::error::Result;
 use z3::ast::Real;
 

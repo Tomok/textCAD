@@ -5,6 +5,7 @@
 //! geometric configurations.
 
 pub mod constraint;
+pub mod entities;
 pub mod entity;
 pub mod error;
 pub mod sketch;
@@ -13,6 +14,7 @@ pub mod units;
 
 // Re-export commonly used types
 pub use constraint::{Constraint, ConstraintFactory, SketchQuery};
-pub use entity::{CircleId, LineId, PointId};
+pub use entities::{Point2D, PointId};
+pub use entity::{CircleId, LineId};
 pub use error::{Result, SolverResult, TextCadError};
 pub use units::{Angle, Area, Length};
