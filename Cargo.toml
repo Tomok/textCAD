@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 # Z3 with static-link-z3 DISABLED to use system Z3
 z3 = { version = "0.12", default-features = false }
+thiserror = "1.0"
 
 [dev-dependencies]
 proptest = "1.4"

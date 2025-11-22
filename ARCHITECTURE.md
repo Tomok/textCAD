@@ -220,6 +220,14 @@ Both API styles produce identical internal representations. The fluent builders 
 
 *derives from: REQ-12*
 
+### 2.9 Error Handling
+
+The system employs the `thiserror` crate to provide structured error handling with clear error messages and proper error chaining. All fallible operations return `Result<T, TextCadError>` where `TextCadError` is an enum covering the major error categories including solver failures, invalid constraints, entity reference errors, over/under-constrained systems, solution extraction failures, and export errors.
+
+*derives from: REQ-13*
+
+Error types are designed to provide actionable information to users while maintaining type safety. The error system integrates with Rust's `?` operator for ergonomic error propagation throughout the codebase. Each error variant includes contextual information to aid in debugging constraint specification issues or solver problems.
+
 ## 3. Design Decisions
 
 ### 3.1 Choice of Z3 Over Selen
