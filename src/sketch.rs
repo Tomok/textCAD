@@ -6,8 +6,10 @@
 use generational_arena::Arena;
 use z3::{Context, SatResult, Solver};
 
+use crate::constraint::{Constraint, SketchQuery};
 use crate::entities::{Point2D, PointId};
 use crate::error::{Result, TextCadError};
+use crate::solution::Solution;
 
 /// Main sketch structure that manages geometric entities and constraints
 ///
@@ -18,6 +20,8 @@ pub struct Sketch<'ctx> {
     solver: Solver<'ctx>,
     /// Arena for managing Point2D entities
     points: Arena<Point2D<'ctx>>,
+    /// Vector of constraints that have been added to the sketch
+    constraints: Vec<Box<dyn Constraint>>,
 }
 
 impl<'ctx> Sketch<'ctx> {
@@ -38,10 +42,12 @@ impl<'ctx> Sketch<'ctx> {
     pub fn new(ctx: &'ctx Context) -> Self {
         let solver = Solver::new(ctx);
         let points = Arena::new();
+        let constraints = Vec::new();
         Self {
             ctx,
             solver,
             points,
+            constraints,
         }
     }
 
@@ -135,6 +141,63 @@ impl<'ctx> Sketch<'ctx> {
     /// ```
     pub fn get_point(&self, id: PointId) -> Option<&Point2D<'ctx>> {
         self.points.get(id.into())
+    }
+
+    /// Add a constraint to the sketch
+    pub fn add_constraint(&mut self, constraint: impl Constraint + 'static) {
+        self.constraints.push(Box::new(constraint));
+    }
+
+    /// Apply all constraints and solve the system
+    pub fn solve_constraints(&mut self) -> Result<SatResult> {
+        // Apply all constraints
+        for constraint in &self.constraints {
+            constraint.apply(self.ctx, &self.solver, self)?;
+        }
+
+        // Solve the constraint system
+        self.solve()
+    }
+
+    /// Apply all constraints, solve, and return a Solution with extracted coordinates
+    pub fn solve_and_extract(&mut self) -> Result<Solution<'ctx>> {
+        // Apply all constraints and solve
+        self.solve_constraints()?;
+
+        // Extract the model
+        let model = self.solver.get_model()
+            .ok_or_else(|| TextCadError::SolverError("No model available after solving".to_string()))?;
+
+        // Create solution and extract all point coordinates
+        let mut solution = Solution::new(model);
+        
+        // Extract coordinates for all points
+        for (idx, point) in self.points.iter() {
+            let point_id = PointId::from(idx);
+            solution.extract_point_coordinates(point_id, &point.x, &point.y)?;
+        }
+
+        Ok(solution)
+    }
+}
+
+impl<'ctx> SketchQuery for Sketch<'ctx> {
+    fn point_variables(&self, point_id: PointId) -> Result<(z3::ast::Real<'_>, z3::ast::Real<'_>)> {
+        if let Some(point) = self.get_point(point_id) {
+            Ok((point.x.clone(), point.y.clone()))
+        } else {
+            Err(TextCadError::EntityError(format!("Point {:?} not found", point_id)))
+        }
+    }
+
+    fn length_variable(&self, name: &str) -> Result<z3::ast::Real<'_>> {
+        // For now, create a new length variable on demand
+        Ok(z3::ast::Real::new_const(self.ctx, format!("length_{}", name)))
+    }
+
+    fn angle_variable(&self, name: &str) -> Result<z3::ast::Real<'_>> {
+        // For now, create a new angle variable on demand  
+        Ok(z3::ast::Real::new_const(self.ctx, format!("angle_{}", name)))
     }
 }
 
@@ -326,5 +389,89 @@ mod tests {
         let fake_id = PointId::from(Index::from_raw_parts(999, 999));
 
         assert!(sketch.get_point(fake_id).is_none());
+    }
+
+    // Integration tests for constraint solving workflow
+    #[test]
+    fn test_single_point_fixed_position() {
+        let cfg = Config::new();
+        let ctx = Context::new(&cfg);
+        let mut sketch = Sketch::new(&ctx);
+
+        // Add a point and fix it at a specific position
+        let p1 = sketch.add_point(Some("p1".to_string()));
+        let constraint = crate::constraints::FixedPositionConstraint::new(
+            p1,
+            crate::units::Length::meters(3.0),
+            crate::units::Length::meters(4.0),
+        );
+        sketch.add_constraint(constraint);
+
+        // Solve and extract solution
+        let solution = sketch.solve_and_extract().unwrap();
+        let (x, y) = solution.get_point_coordinates(p1).unwrap();
+
+        assert!((x - 3.0).abs() < 1e-6);
+        assert!((y - 4.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_coincident_points_constraint() {
+        let cfg = Config::new();
+        let ctx = Context::new(&cfg);
+        let mut sketch = Sketch::new(&ctx);
+
+        // Add two points and make them coincident
+        let p1 = sketch.add_point(Some("p1".to_string()));
+        let p2 = sketch.add_point(Some("p2".to_string()));
+
+        // Fix one point's position
+        let fix_constraint = crate::constraints::FixedPositionConstraint::new(
+            p1,
+            crate::units::Length::meters(1.0),
+            crate::units::Length::meters(2.0),
+        );
+        sketch.add_constraint(fix_constraint);
+
+        // Make the second point coincident with the first
+        let coincident_constraint = crate::constraints::CoincidentPointsConstraint::new(p1, p2);
+        sketch.add_constraint(coincident_constraint);
+
+        // Solve and verify both points have the same coordinates
+        let solution = sketch.solve_and_extract().unwrap();
+        let (x1, y1) = solution.get_point_coordinates(p1).unwrap();
+        let (x2, y2) = solution.get_point_coordinates(p2).unwrap();
+
+        assert!((x1 - 1.0).abs() < 1e-6);
+        assert!((y1 - 2.0).abs() < 1e-6);
+        assert!((x1 - x2).abs() < 1e-6);
+        assert!((y1 - y2).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_overconstrainted_system() {
+        let cfg = Config::new();
+        let ctx = Context::new(&cfg);
+        let mut sketch = Sketch::new(&ctx);
+
+        // Add a point
+        let p1 = sketch.add_point(Some("p1".to_string()));
+
+        // Try to fix it at two different positions (overconstraint)
+        sketch.add_constraint(crate::constraints::FixedPositionConstraint::new(
+            p1,
+            crate::units::Length::meters(1.0),
+            crate::units::Length::meters(1.0),
+        ));
+        sketch.add_constraint(crate::constraints::FixedPositionConstraint::new(
+            p1,
+            crate::units::Length::meters(2.0),
+            crate::units::Length::meters(2.0),
+        ));
+
+        // This should fail as the system is overconstrained
+        let result = sketch.solve_and_extract();
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), TextCadError::OverConstrained));
     }
 }
