@@ -1,4 +1,5 @@
 use crate::entities::PointId;
+use crate::entity::LineId;
 use crate::error::Result;
 use z3::ast::Real;
 
@@ -28,6 +29,9 @@ pub trait Constraint: Send + Sync + std::fmt::Debug {
 pub trait SketchQuery {
     /// Get the Z3 Real variables for a point's coordinates
     fn point_variables(&self, point_id: PointId) -> Result<(Real<'_>, Real<'_>)>;
+
+    /// Get the endpoint PointIds for a line
+    fn line_endpoints(&self, line_id: LineId) -> Result<(PointId, PointId)>;
 
     /// Get the Z3 Real variable for a length/distance value
     fn length_variable(&self, name: &str) -> Result<Real<'_>>;

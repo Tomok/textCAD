@@ -7,7 +7,8 @@ use generational_arena::Arena;
 use z3::{Context, SatResult, Solver};
 
 use crate::constraint::{Constraint, SketchQuery};
-use crate::entities::{Point2D, PointId};
+use crate::entities::{Line, Point2D, PointId};
+use crate::entity::LineId;
 use crate::error::{Result, TextCadError};
 use crate::solution::Solution;
 
@@ -20,6 +21,8 @@ pub struct Sketch<'ctx> {
     solver: Solver<'ctx>,
     /// Arena for managing Point2D entities
     points: Arena<Point2D<'ctx>>,
+    /// Arena for managing Line entities
+    lines: Arena<Line>,
     /// Vector of constraints that have been added to the sketch
     constraints: Vec<Box<dyn Constraint>>,
 }
@@ -42,11 +45,13 @@ impl<'ctx> Sketch<'ctx> {
     pub fn new(ctx: &'ctx Context) -> Self {
         let solver = Solver::new(ctx);
         let points = Arena::new();
+        let lines = Arena::new();
         let constraints = Vec::new();
         Self {
             ctx,
             solver,
             points,
+            lines,
             constraints,
         }
     }
@@ -143,6 +148,63 @@ impl<'ctx> Sketch<'ctx> {
         self.points.get(id.into())
     }
 
+    /// Add a new line to the sketch
+    ///
+    /// Creates a new Line that connects two existing points and adds it to the lines arena.
+    ///
+    /// # Arguments
+    /// * `start` - PointId of the starting point  
+    /// * `end` - PointId of the ending point
+    /// * `name` - Optional name for debugging and display
+    ///
+    /// # Returns
+    /// LineId that can be used to reference this line
+    ///
+    /// # Example
+    /// ```
+    /// use z3::{Config, Context};
+    /// use textcad::sketch::Sketch;
+    ///
+    /// let cfg = Config::new();
+    /// let ctx = Context::new(&cfg);
+    /// let mut sketch = Sketch::new(&ctx);
+    /// let p1 = sketch.add_point(Some("p1".to_string()));
+    /// let p2 = sketch.add_point(Some("p2".to_string()));
+    /// let line = sketch.add_line(p1, p2, Some("line1".to_string()));
+    /// ```
+    pub fn add_line(&mut self, start: PointId, end: PointId, name: Option<String>) -> LineId {
+        let idx = self.lines.insert_with(|idx| {
+            let id = LineId::from(idx);
+            Line::new(id, start, end, name)
+        });
+        LineId::from(idx)
+    }
+
+    /// Get a reference to a line by its ID
+    ///
+    /// # Arguments  
+    /// * `id` - The LineId to look up
+    ///
+    /// # Returns
+    /// Option containing a reference to the Line, or None if not found
+    ///
+    /// # Example
+    /// ```
+    /// use z3::{Config, Context};
+    /// use textcad::sketch::Sketch;
+    ///
+    /// let cfg = Config::new();
+    /// let ctx = Context::new(&cfg);
+    /// let mut sketch = Sketch::new(&ctx);
+    /// let p1 = sketch.add_point(None);
+    /// let p2 = sketch.add_point(None);
+    /// let id = sketch.add_line(p1, p2, Some("test".to_string()));
+    /// let line = sketch.get_line(id).unwrap();
+    /// ```
+    pub fn get_line(&self, id: LineId) -> Option<&Line> {
+        self.lines.get(id.into())
+    }
+
     /// Add a constraint to the sketch
     pub fn add_constraint(&mut self, constraint: impl Constraint + 'static) {
         self.constraints.push(Box::new(constraint));
@@ -178,6 +240,18 @@ impl<'ctx> Sketch<'ctx> {
             solution.extract_point_coordinates(point_id, &point.x, &point.y)?;
         }
 
+        // Extract parameters for all lines
+        for (idx, line) in self.lines.iter() {
+            let line_id = LineId::from(idx);
+
+            // Get start and end point coordinates
+            let start_coords = solution.get_point_coordinates(line.start)?;
+            let end_coords = solution.get_point_coordinates(line.end)?;
+
+            // Extract line parameters
+            solution.extract_line_parameters(line_id, start_coords, end_coords)?;
+        }
+
         Ok(solution)
     }
 }
@@ -190,6 +264,17 @@ impl<'ctx> SketchQuery for Sketch<'ctx> {
             Err(TextCadError::EntityError(format!(
                 "Point {:?} not found",
                 point_id
+            )))
+        }
+    }
+
+    fn line_endpoints(&self, line_id: LineId) -> Result<(PointId, PointId)> {
+        if let Some(line) = self.get_line(line_id) {
+            Ok((line.start, line.end))
+        } else {
+            Err(TextCadError::EntityError(format!(
+                "Line {:?} not found",
+                line_id
             )))
         }
     }
@@ -483,5 +568,442 @@ mod tests {
         let result = sketch.solve_and_extract();
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), TextCadError::OverConstrained));
+    }
+
+    // Tests for Line entity functionality
+    #[test]
+    fn test_line_creation() {
+        let cfg = Config::new();
+        let ctx = Context::new(&cfg);
+        let mut sketch = Sketch::new(&ctx);
+
+        let p1 = sketch.add_point(Some("p1".to_string()));
+        let p2 = sketch.add_point(Some("p2".to_string()));
+        let line = sketch.add_line(p1, p2, Some("line1".to_string()));
+
+        assert!(sketch.get_line(line).is_some());
+
+        let line_obj = sketch.get_line(line).unwrap();
+        assert_eq!(line_obj.id, line);
+        assert_eq!(line_obj.start, p1);
+        assert_eq!(line_obj.end, p2);
+        assert_eq!(line_obj.name, Some("line1".to_string()));
+    }
+
+    #[test]
+    fn test_line_creation_without_name() {
+        let cfg = Config::new();
+        let ctx = Context::new(&cfg);
+        let mut sketch = Sketch::new(&ctx);
+
+        let p1 = sketch.add_point(None);
+        let p2 = sketch.add_point(None);
+        let line = sketch.add_line(p1, p2, None);
+
+        let line_obj = sketch.get_line(line).unwrap();
+        assert_eq!(line_obj.id, line);
+        assert_eq!(line_obj.start, p1);
+        assert_eq!(line_obj.end, p2);
+        assert_eq!(line_obj.name, None);
+        assert!(line_obj.display_name().starts_with("Line"));
+    }
+
+    #[test]
+    fn test_multiple_lines_distinct_ids() {
+        let cfg = Config::new();
+        let ctx = Context::new(&cfg);
+        let mut sketch = Sketch::new(&ctx);
+
+        let p1 = sketch.add_point(Some("p1".to_string()));
+        let p2 = sketch.add_point(Some("p2".to_string()));
+        let p3 = sketch.add_point(Some("p3".to_string()));
+
+        let line1 = sketch.add_line(p1, p2, Some("line1".to_string()));
+        let line2 = sketch.add_line(p2, p3, Some("line2".to_string()));
+        let line3 = sketch.add_line(p1, p3, Some("line3".to_string()));
+
+        // All IDs should be different
+        assert_ne!(line1, line2);
+        assert_ne!(line2, line3);
+        assert_ne!(line1, line3);
+
+        // All lines should be retrievable
+        assert!(sketch.get_line(line1).is_some());
+        assert!(sketch.get_line(line2).is_some());
+        assert!(sketch.get_line(line3).is_some());
+
+        // Lines should have correct endpoints
+        let line1_obj = sketch.get_line(line1).unwrap();
+        let line2_obj = sketch.get_line(line2).unwrap();
+        let line3_obj = sketch.get_line(line3).unwrap();
+
+        assert_eq!(line1_obj.endpoints(), (p1, p2));
+        assert_eq!(line2_obj.endpoints(), (p2, p3));
+        assert_eq!(line3_obj.endpoints(), (p1, p3));
+    }
+
+    #[test]
+    fn test_get_nonexistent_line() {
+        let cfg = Config::new();
+        let ctx = Context::new(&cfg);
+        let sketch = Sketch::new(&ctx);
+
+        // Create a fake LineId that doesn't exist
+        use generational_arena::Index;
+        let fake_id = LineId::from(Index::from_raw_parts(999, 999));
+
+        assert!(sketch.get_line(fake_id).is_none());
+    }
+
+    #[test]
+    fn test_line_endpoints_query() {
+        let cfg = Config::new();
+        let ctx = Context::new(&cfg);
+        let mut sketch = Sketch::new(&ctx);
+
+        let p1 = sketch.add_point(Some("p1".to_string()));
+        let p2 = sketch.add_point(Some("p2".to_string()));
+        let line = sketch.add_line(p1, p2, Some("test_line".to_string()));
+
+        // Test SketchQuery trait implementation
+        let endpoints = sketch.line_endpoints(line).unwrap();
+        assert_eq!(endpoints, (p1, p2));
+    }
+
+    #[test]
+    fn test_line_endpoints_query_invalid_line() {
+        let cfg = Config::new();
+        let ctx = Context::new(&cfg);
+        let sketch = Sketch::new(&ctx);
+
+        // Try to query a non-existent line
+        use generational_arena::Index;
+        let fake_line_id = LineId::from(Index::from_raw_parts(999, 999));
+
+        let result = sketch.line_endpoints(fake_line_id);
+        assert!(result.is_err());
+        assert!(matches!(result, Err(TextCadError::EntityError(_))));
+    }
+
+    #[test]
+    fn test_line_contains_point() {
+        let cfg = Config::new();
+        let ctx = Context::new(&cfg);
+        let mut sketch = Sketch::new(&ctx);
+
+        let p1 = sketch.add_point(Some("p1".to_string()));
+        let p2 = sketch.add_point(Some("p2".to_string()));
+        let p3 = sketch.add_point(Some("p3".to_string()));
+
+        let line = sketch.add_line(p1, p2, Some("test_line".to_string()));
+        let line_obj = sketch.get_line(line).unwrap();
+
+        assert!(line_obj.contains_point(p1));
+        assert!(line_obj.contains_point(p2));
+        assert!(!line_obj.contains_point(p3));
+    }
+
+    // Integration tests for Line entity with constraints
+    #[test]
+    fn test_line_with_fixed_endpoints() {
+        let cfg = Config::new();
+        let ctx = Context::new(&cfg);
+        let mut sketch = Sketch::new(&ctx);
+
+        // Create two points and fix their positions
+        let p1 = sketch.add_point(Some("p1".to_string()));
+        let p2 = sketch.add_point(Some("p2".to_string()));
+
+        // Fix p1 at origin (0, 0)
+        sketch.add_constraint(crate::constraints::FixedPositionConstraint::new(
+            p1,
+            crate::units::Length::meters(0.0),
+            crate::units::Length::meters(0.0),
+        ));
+
+        // Fix p2 at (3, 4) - this creates a 3-4-5 right triangle
+        sketch.add_constraint(crate::constraints::FixedPositionConstraint::new(
+            p2,
+            crate::units::Length::meters(3.0),
+            crate::units::Length::meters(4.0),
+        ));
+
+        // Create a line connecting these points
+        let line = sketch.add_line(p1, p2, Some("line1".to_string()));
+
+        // Verify line was created properly
+        let line_obj = sketch.get_line(line).unwrap();
+        assert_eq!(line_obj.endpoints(), (p1, p2));
+        assert_eq!(line_obj.name, Some("line1".to_string()));
+
+        // Solve and extract solution
+        let solution = sketch.solve_and_extract().unwrap();
+
+        // Verify point coordinates
+        let (x1, y1) = solution.get_point_coordinates(p1).unwrap();
+        let (x2, y2) = solution.get_point_coordinates(p2).unwrap();
+
+        assert!((x1 - 0.0).abs() < 1e-6);
+        assert!((y1 - 0.0).abs() < 1e-6);
+        assert!((x2 - 3.0).abs() < 1e-6);
+        assert!((y2 - 4.0).abs() < 1e-6);
+
+        // Calculate line length using Pythagorean theorem
+        let line_length = ((x2 - x1).powi(2) + (y2 - y1).powi(2)).sqrt();
+        assert!((line_length - 5.0).abs() < 1e-6); // 3-4-5 triangle
+    }
+
+    #[test]
+    fn test_triangle_with_three_lines() {
+        let cfg = Config::new();
+        let ctx = Context::new(&cfg);
+        let mut sketch = Sketch::new(&ctx);
+
+        // Create three points for a triangle
+        let p1 = sketch.add_point(Some("A".to_string()));
+        let p2 = sketch.add_point(Some("B".to_string()));
+        let p3 = sketch.add_point(Some("C".to_string()));
+
+        // Fix triangle vertices at specific positions
+        sketch.add_constraint(crate::constraints::FixedPositionConstraint::new(
+            p1,
+            crate::units::Length::meters(0.0),
+            crate::units::Length::meters(0.0),
+        ));
+        sketch.add_constraint(crate::constraints::FixedPositionConstraint::new(
+            p2,
+            crate::units::Length::meters(6.0),
+            crate::units::Length::meters(0.0),
+        ));
+        sketch.add_constraint(crate::constraints::FixedPositionConstraint::new(
+            p3,
+            crate::units::Length::meters(3.0),
+            crate::units::Length::meters(4.0),
+        ));
+
+        // Create three lines forming the triangle
+        let line_ab = sketch.add_line(p1, p2, Some("AB".to_string()));
+        let line_bc = sketch.add_line(p2, p3, Some("BC".to_string()));
+        let line_ca = sketch.add_line(p3, p1, Some("CA".to_string()));
+
+        // Verify lines have correct endpoints
+        let line_ab_obj = sketch.get_line(line_ab).unwrap();
+        let line_bc_obj = sketch.get_line(line_bc).unwrap();
+        let line_ca_obj = sketch.get_line(line_ca).unwrap();
+
+        assert_eq!(line_ab_obj.endpoints(), (p1, p2));
+        assert_eq!(line_bc_obj.endpoints(), (p2, p3));
+        assert_eq!(line_ca_obj.endpoints(), (p3, p1));
+
+        // Solve the system
+        let solution = sketch.solve_and_extract().unwrap();
+
+        // Verify all points have correct coordinates
+        let (ax, ay) = solution.get_point_coordinates(p1).unwrap();
+        let (bx, by) = solution.get_point_coordinates(p2).unwrap();
+        let (cx, cy) = solution.get_point_coordinates(p3).unwrap();
+
+        assert!((ax - 0.0).abs() < 1e-6 && (ay - 0.0).abs() < 1e-6);
+        assert!((bx - 6.0).abs() < 1e-6 && (by - 0.0).abs() < 1e-6);
+        assert!((cx - 3.0).abs() < 1e-6 && (cy - 4.0).abs() < 1e-6);
+
+        // Calculate and verify triangle side lengths
+        let ab_length = ((bx - ax).powi(2) + (by - ay).powi(2)).sqrt();
+        let bc_length = ((cx - bx).powi(2) + (cy - by).powi(2)).sqrt();
+        let ca_length = ((ax - cx).powi(2) + (ay - cy).powi(2)).sqrt();
+
+        assert!((ab_length - 6.0).abs() < 1e-6); // Base of triangle
+        assert!((bc_length - 5.0).abs() < 1e-6); // 3-4-5 triangle side
+        assert!((ca_length - 5.0).abs() < 1e-6); // 3-4-5 triangle side
+    }
+
+    #[test]
+    fn test_line_endpoint_query_integration() {
+        let cfg = Config::new();
+        let ctx = Context::new(&cfg);
+        let mut sketch = Sketch::new(&ctx);
+
+        let p1 = sketch.add_point(Some("start".to_string()));
+        let p2 = sketch.add_point(Some("end".to_string()));
+        let line = sketch.add_line(p1, p2, Some("test_line".to_string()));
+
+        // Test the SketchQuery trait implementation
+        let endpoints = sketch.line_endpoints(line).unwrap();
+        assert_eq!(endpoints.0, p1);
+        assert_eq!(endpoints.1, p2);
+
+        // Verify this matches the line object's endpoints method
+        let line_obj = sketch.get_line(line).unwrap();
+        assert_eq!(endpoints, line_obj.endpoints());
+    }
+
+    #[test]
+    fn test_line_length_constraint_with_entity_factory() {
+        let cfg = Config::new();
+        let ctx = Context::new(&cfg);
+        let mut sketch = Sketch::new(&ctx);
+
+        // Create two points
+        let p1 = sketch.add_point(Some("start".to_string()));
+        let p2 = sketch.add_point(Some("end".to_string()));
+
+        // Fix one point at the origin
+        sketch.add_constraint(crate::constraints::FixedPositionConstraint::new(
+            p1,
+            crate::units::Length::meters(0.0),
+            crate::units::Length::meters(0.0),
+        ));
+
+        // Create a line
+        let line_id = sketch.add_line(p1, p2, Some("test_line".to_string()));
+
+        // Use the entity-as-constraint-factory pattern to create length constraint
+        let length_constraint = {
+            let line_obj = sketch.get_line(line_id).unwrap();
+            line_obj.length_equals(crate::units::Length::meters(10.0))
+        };
+        sketch.add_constraint(length_constraint);
+
+        // Solve the system
+        let solution = sketch.solve_and_extract().unwrap();
+
+        // Verify point positions
+        let (x1, y1) = solution.get_point_coordinates(p1).unwrap();
+        let (x2, y2) = solution.get_point_coordinates(p2).unwrap();
+
+        assert!((x1 - 0.0).abs() < 1e-6);
+        assert!((y1 - 0.0).abs() < 1e-6);
+
+        // Calculate actual line length
+        let actual_length = ((x2 - x1).powi(2) + (y2 - y1).powi(2)).sqrt();
+        assert!((actual_length - 10.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_multiple_line_constraints() {
+        let cfg = Config::new();
+        let ctx = Context::new(&cfg);
+        let mut sketch = Sketch::new(&ctx);
+
+        // Create points for two lines forming an L-shape
+        let origin = sketch.add_point(Some("origin".to_string()));
+        let end1 = sketch.add_point(Some("end1".to_string()));
+        let end2 = sketch.add_point(Some("end2".to_string()));
+
+        // Fix origin
+        sketch.add_constraint(crate::constraints::FixedPositionConstraint::new(
+            origin,
+            crate::units::Length::meters(0.0),
+            crate::units::Length::meters(0.0),
+        ));
+
+        // Fix end1 on x-axis
+        sketch.add_constraint(crate::constraints::FixedPositionConstraint::new(
+            end1,
+            crate::units::Length::meters(3.0),
+            crate::units::Length::meters(0.0),
+        ));
+
+        // Fix end2 on y-axis
+        sketch.add_constraint(crate::constraints::FixedPositionConstraint::new(
+            end2,
+            crate::units::Length::meters(0.0),
+            crate::units::Length::meters(4.0),
+        ));
+
+        // Create two lines
+        let line1_id = sketch.add_line(origin, end1, Some("horizontal".to_string()));
+        let line2_id = sketch.add_line(origin, end2, Some("vertical".to_string()));
+
+        // Use entity-as-constraint-factory to set line lengths
+        let length1_constraint = {
+            let line1 = sketch.get_line(line1_id).unwrap();
+            line1.length_equals(crate::units::Length::meters(3.0))
+        };
+        let length2_constraint = {
+            let line2 = sketch.get_line(line2_id).unwrap();
+            line2.length_equals(crate::units::Length::meters(4.0))
+        };
+
+        sketch.add_constraint(length1_constraint);
+        sketch.add_constraint(length2_constraint);
+
+        // Solve and verify
+        let solution = sketch.solve_and_extract().unwrap();
+
+        let (ox, oy) = solution.get_point_coordinates(origin).unwrap();
+        let (x1, y1) = solution.get_point_coordinates(end1).unwrap();
+        let (x2, y2) = solution.get_point_coordinates(end2).unwrap();
+
+        // Verify fixed positions
+        assert!((ox - 0.0).abs() < 1e-6 && (oy - 0.0).abs() < 1e-6);
+        assert!((x1 - 3.0).abs() < 1e-6 && (y1 - 0.0).abs() < 1e-6);
+        assert!((x2 - 0.0).abs() < 1e-6 && (y2 - 4.0).abs() < 1e-6);
+
+        // Verify line lengths
+        let len1 = ((x1 - ox).powi(2) + (y1 - oy).powi(2)).sqrt();
+        let len2 = ((x2 - ox).powi(2) + (y2 - oy).powi(2)).sqrt();
+
+        assert!((len1 - 3.0).abs() < 1e-6);
+        assert!((len2 - 4.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_line_parameter_extraction() {
+        let cfg = Config::new();
+        let ctx = Context::new(&cfg);
+        let mut sketch = Sketch::new(&ctx);
+
+        // Create a right triangle with known angles
+        let origin = sketch.add_point(Some("origin".to_string()));
+        let right = sketch.add_point(Some("right".to_string()));
+        let top = sketch.add_point(Some("top".to_string()));
+
+        // Fix points for a 3-4-5 right triangle
+        sketch.add_constraint(crate::constraints::FixedPositionConstraint::new(
+            origin,
+            crate::units::Length::meters(0.0),
+            crate::units::Length::meters(0.0),
+        ));
+        sketch.add_constraint(crate::constraints::FixedPositionConstraint::new(
+            right,
+            crate::units::Length::meters(3.0),
+            crate::units::Length::meters(0.0),
+        ));
+        sketch.add_constraint(crate::constraints::FixedPositionConstraint::new(
+            top,
+            crate::units::Length::meters(0.0),
+            crate::units::Length::meters(4.0),
+        ));
+
+        // Create lines
+        let horizontal_line = sketch.add_line(origin, right, Some("horizontal".to_string()));
+        let vertical_line = sketch.add_line(origin, top, Some("vertical".to_string()));
+        let hypotenuse_line = sketch.add_line(right, top, Some("hypotenuse".to_string()));
+
+        // Solve and extract
+        let solution = sketch.solve_and_extract().unwrap();
+
+        // Check horizontal line parameters
+        let h_params = solution.get_line_parameters(horizontal_line).unwrap();
+        assert!((h_params.start.0 - 0.0).abs() < 1e-6);
+        assert!((h_params.start.1 - 0.0).abs() < 1e-6);
+        assert!((h_params.end.0 - 3.0).abs() < 1e-6);
+        assert!((h_params.end.1 - 0.0).abs() < 1e-6);
+        assert!((h_params.length - 3.0).abs() < 1e-6);
+        assert!((h_params.angle - 0.0).abs() < 1e-6); // 0 radians (horizontal)
+
+        // Check vertical line parameters
+        let v_params = solution.get_line_parameters(vertical_line).unwrap();
+        assert!((v_params.length - 4.0).abs() < 1e-6);
+        assert!((v_params.angle - std::f64::consts::FRAC_PI_2).abs() < 1e-6); // π/2 radians (vertical)
+
+        // Check hypotenuse line parameters
+        let hyp_params = solution.get_line_parameters(hypotenuse_line).unwrap();
+        assert!((hyp_params.length - 5.0).abs() < 1e-6); // 3-4-5 triangle
+
+        // Check angle is correct (from (3,0) to (0,4))
+        let expected_angle = (4.0_f64 - 0.0_f64).atan2(0.0_f64 - 3.0_f64); // atan2(4, -3)
+        assert!((hyp_params.angle - expected_angle).abs() < 1e-6);
     }
 }

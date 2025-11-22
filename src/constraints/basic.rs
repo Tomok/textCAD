@@ -144,6 +144,12 @@ mod tests {
                 .ok_or_else(|| TextCadError::EntityError("Point not found".to_string()))
         }
 
+        fn line_endpoints(&self, _line_id: crate::entity::LineId) -> Result<(PointId, PointId)> {
+            Err(TextCadError::InvalidConstraint(
+                "Not implemented".to_string(),
+            ))
+        }
+
         fn length_variable(&self, _name: &str) -> Result<Real<'_>> {
             Err(TextCadError::InvalidConstraint(
                 "Not implemented".to_string(),

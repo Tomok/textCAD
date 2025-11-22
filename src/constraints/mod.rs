@@ -4,9 +4,11 @@
 //! geometric entities to define their relationships and properties.
 
 pub mod basic;
+pub mod line;
 
 #[cfg(test)]
 mod property_tests;
 
 // Re-export commonly used constraint types
 pub use basic::{CoincidentPointsConstraint, FixedPositionConstraint};
+pub use line::LineLengthConstraint;
