@@ -106,3 +106,5 @@ Example property: "For any positive length L, the solver finds a configuration w
 - Property-based testing with `proptest` crate
 - Generational arena pattern for entity management
 - CI/CD through GitHub Actions with Nix caching
+- to mark checkboxes in markdown files as done use [x]
+- before adding files to git, make sure to run formatting tools
