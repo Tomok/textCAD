@@ -6,31 +6,31 @@ pub enum TextCadError {
     /// Z3 solver related errors
     #[error("Solver error: {0}")]
     SolverError(String),
-    
+
     /// Invalid constraint specification
     #[error("Invalid constraint: {0}")]
     InvalidConstraint(String),
-    
+
     /// Entity reference errors (invalid ID, etc.)
     #[error("Entity error: {0}")]
     EntityError(String),
-    
+
     /// Sketch is over-constrained (no solution exists)
     #[error("Sketch is over-constrained")]
     OverConstrained,
-    
+
     /// Sketch is under-constrained (infinite solutions)
     #[error("Sketch is under-constrained")]
     UnderConstrained,
-    
+
     /// Solution extraction failed
     #[error("Solution error: {0}")]
     SolutionError(String),
-    
+
     /// Export/serialization errors
     #[error("Export error: {0}")]
     ExportError(String),
-    
+
     /// Invalid input parameters
     #[error("Invalid parameter: {0}")]
     InvalidParameter(String),
@@ -50,7 +50,7 @@ mod tests {
     fn test_error_display() {
         let error = TextCadError::SolverError("Z3 failed".to_string());
         assert_eq!(error.to_string(), "Solver error: Z3 failed");
-        
+
         let error = TextCadError::OverConstrained;
         assert_eq!(error.to_string(), "Sketch is over-constrained");
     }

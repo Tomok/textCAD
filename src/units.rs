@@ -1,4 +1,4 @@
-use std::ops::{Add, Sub, Mul, Div, Neg};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 
 /// A length value stored in meters.
 /// Provides type-safe unit conversions.
@@ -15,17 +15,23 @@ impl Length {
 
     /// Create a length from millimeters
     pub fn millimeters(value: f64) -> Self {
-        Self { meters: value / 1000.0 }
+        Self {
+            meters: value / 1000.0,
+        }
     }
 
     /// Create a length from centimeters
     pub fn centimeters(value: f64) -> Self {
-        Self { meters: value / 100.0 }
+        Self {
+            meters: value / 100.0,
+        }
     }
 
     /// Create a length from inches
     pub fn inches(value: f64) -> Self {
-        Self { meters: value * 0.0254 }
+        Self {
+            meters: value * 0.0254,
+        }
     }
 
     /// Get the value in meters
@@ -58,7 +64,9 @@ impl Add for Length {
     type Output = Self;
 
     fn add(self, other: Self) -> Self::Output {
-        Self { meters: self.meters + other.meters }
+        Self {
+            meters: self.meters + other.meters,
+        }
     }
 }
 
@@ -66,7 +74,9 @@ impl Sub for Length {
     type Output = Self;
 
     fn sub(self, other: Self) -> Self::Output {
-        Self { meters: self.meters - other.meters }
+        Self {
+            meters: self.meters - other.meters,
+        }
     }
 }
 
@@ -74,7 +84,9 @@ impl Mul<f64> for Length {
     type Output = Self;
 
     fn mul(self, scalar: f64) -> Self::Output {
-        Self { meters: self.meters * scalar }
+        Self {
+            meters: self.meters * scalar,
+        }
     }
 }
 
@@ -82,7 +94,9 @@ impl Mul<Length> for f64 {
     type Output = Length;
 
     fn mul(self, length: Length) -> Self::Output {
-        Length { meters: self * length.meters }
+        Length {
+            meters: self * length.meters,
+        }
     }
 }
 
@@ -90,7 +104,9 @@ impl Mul<Length> for Length {
     type Output = Area;
 
     fn mul(self, other: Length) -> Self::Output {
-        Area { square_meters: self.meters * other.meters }
+        Area {
+            square_meters: self.meters * other.meters,
+        }
     }
 }
 
@@ -98,7 +114,9 @@ impl Div<f64> for Length {
     type Output = Self;
 
     fn div(self, scalar: f64) -> Self::Output {
-        Self { meters: self.meters / scalar }
+        Self {
+            meters: self.meters / scalar,
+        }
     }
 }
 
@@ -114,7 +132,9 @@ impl Neg for Length {
     type Output = Self;
 
     fn neg(self) -> Self::Output {
-        Self { meters: -self.meters }
+        Self {
+            meters: -self.meters,
+        }
     }
 }
 
@@ -127,7 +147,9 @@ pub struct Area {
 impl Area {
     /// Create an area from square meters
     pub fn square_meters(value: f64) -> Self {
-        Self { square_meters: value }
+        Self {
+            square_meters: value,
+        }
     }
 
     /// Get the value in square meters
@@ -145,7 +167,9 @@ impl Add for Area {
     type Output = Self;
 
     fn add(self, other: Self) -> Self::Output {
-        Self { square_meters: self.square_meters + other.square_meters }
+        Self {
+            square_meters: self.square_meters + other.square_meters,
+        }
     }
 }
 
@@ -153,7 +177,9 @@ impl Sub for Area {
     type Output = Self;
 
     fn sub(self, other: Self) -> Self::Output {
-        Self { square_meters: self.square_meters - other.square_meters }
+        Self {
+            square_meters: self.square_meters - other.square_meters,
+        }
     }
 }
 
@@ -161,7 +187,9 @@ impl Mul<f64> for Area {
     type Output = Self;
 
     fn mul(self, scalar: f64) -> Self::Output {
-        Self { square_meters: self.square_meters * scalar }
+        Self {
+            square_meters: self.square_meters * scalar,
+        }
     }
 }
 
@@ -169,7 +197,9 @@ impl Mul<Area> for f64 {
     type Output = Area;
 
     fn mul(self, area: Area) -> Self::Output {
-        Area { square_meters: self * area.square_meters }
+        Area {
+            square_meters: self * area.square_meters,
+        }
     }
 }
 
@@ -177,7 +207,9 @@ impl Div<f64> for Area {
     type Output = Self;
 
     fn div(self, scalar: f64) -> Self::Output {
-        Self { square_meters: self.square_meters / scalar }
+        Self {
+            square_meters: self.square_meters / scalar,
+        }
     }
 }
 
@@ -185,7 +217,9 @@ impl Div<Length> for Area {
     type Output = Length;
 
     fn div(self, length: Length) -> Self::Output {
-        Length { meters: self.square_meters / length.meters }
+        Length {
+            meters: self.square_meters / length.meters,
+        }
     }
 }
 
@@ -212,7 +246,9 @@ impl Angle {
 
     /// Create an angle from degrees
     pub fn degrees(value: f64) -> Self {
-        Self { radians: value * std::f64::consts::PI / 180.0 }
+        Self {
+            radians: value * std::f64::consts::PI / 180.0,
+        }
     }
 
     /// Get the value in radians
@@ -270,7 +306,9 @@ impl Add for Angle {
     type Output = Self;
 
     fn add(self, other: Self) -> Self::Output {
-        Self { radians: self.radians + other.radians }
+        Self {
+            radians: self.radians + other.radians,
+        }
     }
 }
 
@@ -278,7 +316,9 @@ impl Sub for Angle {
     type Output = Self;
 
     fn sub(self, other: Self) -> Self::Output {
-        Self { radians: self.radians - other.radians }
+        Self {
+            radians: self.radians - other.radians,
+        }
     }
 }
 
@@ -286,7 +326,9 @@ impl Mul<f64> for Angle {
     type Output = Self;
 
     fn mul(self, scalar: f64) -> Self::Output {
-        Self { radians: self.radians * scalar }
+        Self {
+            radians: self.radians * scalar,
+        }
     }
 }
 
@@ -294,7 +336,9 @@ impl Mul<Angle> for f64 {
     type Output = Angle;
 
     fn mul(self, angle: Angle) -> Self::Output {
-        Angle { radians: self * angle.radians }
+        Angle {
+            radians: self * angle.radians,
+        }
     }
 }
 
@@ -302,7 +346,9 @@ impl Div<f64> for Angle {
     type Output = Self;
 
     fn div(self, scalar: f64) -> Self::Output {
-        Self { radians: self.radians / scalar }
+        Self {
+            radians: self.radians / scalar,
+        }
     }
 }
 
@@ -318,7 +364,9 @@ impl Neg for Angle {
     type Output = Self;
 
     fn neg(self) -> Self::Output {
-        Self { radians: -self.radians }
+        Self {
+            radians: -self.radians,
+        }
     }
 }
 
@@ -332,7 +380,7 @@ mod tests {
         assert_eq!(len.to_meters(), 1.0);
         assert_eq!(len.to_millimeters(), 1000.0);
         assert_eq!(len.to_centimeters(), 100.0);
-        
+
         let len_mm = Length::millimeters(1000.0);
         assert_eq!(len_mm.to_meters(), 1.0);
     }
@@ -341,7 +389,7 @@ mod tests {
     fn test_length_arithmetic() {
         let a = Length::meters(2.0);
         let b = Length::meters(3.0);
-        
+
         assert_eq!((a + b).to_meters(), 5.0);
         assert_eq!((b - a).to_meters(), 1.0);
         assert_eq!((a * 2.0).to_meters(), 4.0);
@@ -369,7 +417,7 @@ mod tests {
     fn test_angle_conversions() {
         let angle = Angle::degrees(90.0);
         assert!((angle.to_radians() - std::f64::consts::PI / 2.0).abs() < 1e-10);
-        
+
         let angle_rad = Angle::radians(std::f64::consts::PI);
         assert!((angle_rad.to_degrees() - 180.0).abs() < 1e-10);
     }
@@ -379,7 +427,7 @@ mod tests {
         let angle = Angle::degrees(450.0);
         let normalized = angle.normalize();
         assert!((normalized.to_degrees() - 90.0).abs() < 1e-10);
-        
+
         let angle = Angle::degrees(-90.0);
         let normalized = angle.normalize_symmetric();
         assert!((normalized.to_degrees() + 90.0).abs() < 1e-10);
@@ -389,7 +437,7 @@ mod tests {
     fn test_angle_arithmetic() {
         let a = Angle::degrees(30.0);
         let b = Angle::degrees(60.0);
-        
+
         assert!((a + b).to_degrees() - 90.0 < 1e-10);
         assert!((b - a).to_degrees() - 30.0 < 1e-10);
         assert!((a * 2.0).to_degrees() - 60.0 < 1e-10);
@@ -401,7 +449,7 @@ mod tests {
         let angle = Angle::degrees(90.0);
         assert!((angle.sin() - 1.0).abs() < 1e-10);
         assert!(angle.cos().abs() < 1e-10);
-        
+
         let angle = Angle::degrees(45.0);
         assert!((angle.sin() - std::f64::consts::SQRT_2 / 2.0).abs() < 1e-10);
         assert!((angle.cos() - std::f64::consts::SQRT_2 / 2.0).abs() < 1e-10);

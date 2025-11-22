@@ -11,6 +11,6 @@ pub mod units;
 
 // Re-export commonly used types
 pub use constraint::{Constraint, ConstraintFactory, SketchQuery};
-pub use entity::{PointId, LineId, CircleId};
-pub use error::{TextCadError, Result, SolverResult};
-pub use units::{Length, Angle, Area};
+pub use entity::{CircleId, LineId, PointId};
+pub use error::{Result, SolverResult, TextCadError};
+pub use units::{Angle, Area, Length};
