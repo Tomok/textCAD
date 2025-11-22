@@ -20,5 +20,5 @@ pub use constraints::{CoincidentPointsConstraint, FixedPositionConstraint};
 pub use entities::{Point2D, PointId};
 pub use entity::{CircleId, LineId};
 pub use error::{Result, SolverResult, TextCadError};
-pub use solution::Solution;
+pub use solution::{CircleParameters, LineParameters, Solution};
 pub use units::{Angle, Area, Length};

@@ -32,9 +32,11 @@ impl Constraint for CoincidentPointsConstraint {
         sketch: &dyn SketchQuery,
     ) -> Result<()> {
         // Get the coordinates for both points
-        let (x1, y1) = sketch.point_variables(self.point1)
+        let (x1, y1) = sketch
+            .point_variables(self.point1)
             .map_err(|_| TextCadError::EntityError(format!("Point {:?} not found", self.point1)))?;
-        let (x2, y2) = sketch.point_variables(self.point2)
+        let (x2, y2) = sketch
+            .point_variables(self.point2)
             .map_err(|_| TextCadError::EntityError(format!("Point {:?} not found", self.point2)))?;
 
         // Assert that both coordinates are equal
@@ -45,7 +47,10 @@ impl Constraint for CoincidentPointsConstraint {
     }
 
     fn description(&self) -> String {
-        format!("Points {:?} and {:?} are coincident", self.point1, self.point2)
+        format!(
+            "Points {:?} and {:?} are coincident",
+            self.point1, self.point2
+        )
     }
 }
 
@@ -75,21 +80,18 @@ impl Constraint for FixedPositionConstraint {
         sketch: &dyn SketchQuery,
     ) -> Result<()> {
         // Get the point's coordinate variables
-        let (px, py) = sketch.point_variables(self.point)
+        let (px, py) = sketch
+            .point_variables(self.point)
             .map_err(|_| TextCadError::EntityError(format!("Point {:?} not found", self.point)))?;
 
         // Convert coordinates to Z3 rational values
         // Use high precision by multiplying by 1_000_000 and using as denominator
         let x_meters = self.x.to_meters();
         let y_meters = self.y.to_meters();
-        
+
         // Convert to rational with high precision (6 decimal places)
-        let x_val = Real::from_real(context, 
-            (x_meters * 1_000_000.0) as i32, 
-            1_000_000);
-        let y_val = Real::from_real(context,
-            (y_meters * 1_000_000.0) as i32,
-            1_000_000);
+        let x_val = Real::from_real(context, (x_meters * 1_000_000.0) as i32, 1_000_000);
+        let y_val = Real::from_real(context, (y_meters * 1_000_000.0) as i32, 1_000_000);
 
         // Assert that the point coordinates equal the fixed values
         solver.assert(&px._eq(&x_val));
@@ -114,8 +116,8 @@ mod tests {
     use crate::entities::PointId;
     use generational_arena::Index;
     use std::collections::HashMap;
-    use z3::{Config, Context, Solver};
     use z3::ast::Real;
+    use z3::{Config, Context, Solver};
 
     // Mock implementation of SketchQuery for testing
     struct MockSketch<'ctx> {
@@ -136,17 +138,22 @@ mod tests {
 
     impl<'ctx> SketchQuery for MockSketch<'ctx> {
         fn point_variables(&self, point_id: PointId) -> Result<(Real<'_>, Real<'_>)> {
-            self.points.get(&point_id)
+            self.points
+                .get(&point_id)
                 .map(|(x, y)| (x.clone(), y.clone()))
                 .ok_or_else(|| TextCadError::EntityError("Point not found".to_string()))
         }
 
         fn length_variable(&self, _name: &str) -> Result<Real<'_>> {
-            Err(TextCadError::InvalidConstraint("Not implemented".to_string()))
+            Err(TextCadError::InvalidConstraint(
+                "Not implemented".to_string(),
+            ))
         }
 
         fn angle_variable(&self, _name: &str) -> Result<Real<'_>> {
-            Err(TextCadError::InvalidConstraint("Not implemented".to_string()))
+            Err(TextCadError::InvalidConstraint(
+                "Not implemented".to_string(),
+            ))
         }
     }
 
@@ -154,9 +161,9 @@ mod tests {
     fn test_coincident_points_constraint_creation() {
         let p1 = PointId(Index::from_raw_parts(0, 0));
         let p2 = PointId(Index::from_raw_parts(1, 0));
-        
+
         let constraint = CoincidentPointsConstraint::new(p1, p2);
-        
+
         assert_eq!(constraint.point1, p1);
         assert_eq!(constraint.point2, p2);
         assert!(constraint.description().contains("coincident"));
@@ -167,9 +174,9 @@ mod tests {
         let p = PointId(Index::from_raw_parts(0, 0));
         let x = Length::meters(1.0);
         let y = Length::meters(2.0);
-        
+
         let constraint = FixedPositionConstraint::new(p, x, y);
-        
+
         assert_eq!(constraint.point, p);
         assert_eq!(constraint.x, x);
         assert_eq!(constraint.y, y);
@@ -197,7 +204,7 @@ mod tests {
         mock_sketch.add_point(p2, x2, y2);
 
         let constraint = CoincidentPointsConstraint::new(p1, p2);
-        
+
         // Apply the constraint
         constraint.apply(&ctx, &solver, &mock_sketch).unwrap();
 
@@ -218,11 +225,7 @@ mod tests {
         let mut mock_sketch = MockSketch::new();
         mock_sketch.add_point(p, x, y);
 
-        let constraint = FixedPositionConstraint::new(
-            p,
-            Length::meters(3.0),
-            Length::meters(4.0),
-        );
+        let constraint = FixedPositionConstraint::new(p, Length::meters(3.0), Length::meters(4.0));
 
         // Apply the constraint
         constraint.apply(&ctx, &solver, &mock_sketch).unwrap();
@@ -247,7 +250,7 @@ mod tests {
         mock_sketch.add_point(p1, x1, y1);
 
         let constraint = CoincidentPointsConstraint::new(p1, p2);
-        
+
         // Should fail because p2 doesn't exist
         let result = constraint.apply(&ctx, &solver, &mock_sketch);
         assert!(result.is_err());

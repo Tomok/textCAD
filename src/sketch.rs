@@ -165,12 +165,13 @@ impl<'ctx> Sketch<'ctx> {
         self.solve_constraints()?;
 
         // Extract the model
-        let model = self.solver.get_model()
-            .ok_or_else(|| TextCadError::SolverError("No model available after solving".to_string()))?;
+        let model = self.solver.get_model().ok_or_else(|| {
+            TextCadError::SolverError("No model available after solving".to_string())
+        })?;
 
         // Create solution and extract all point coordinates
         let mut solution = Solution::new(model);
-        
+
         // Extract coordinates for all points
         for (idx, point) in self.points.iter() {
             let point_id = PointId::from(idx);
@@ -186,18 +187,27 @@ impl<'ctx> SketchQuery for Sketch<'ctx> {
         if let Some(point) = self.get_point(point_id) {
             Ok((point.x.clone(), point.y.clone()))
         } else {
-            Err(TextCadError::EntityError(format!("Point {:?} not found", point_id)))
+            Err(TextCadError::EntityError(format!(
+                "Point {:?} not found",
+                point_id
+            )))
         }
     }
 
     fn length_variable(&self, name: &str) -> Result<z3::ast::Real<'_>> {
         // For now, create a new length variable on demand
-        Ok(z3::ast::Real::new_const(self.ctx, format!("length_{}", name)))
+        Ok(z3::ast::Real::new_const(
+            self.ctx,
+            format!("length_{}", name),
+        ))
     }
 
     fn angle_variable(&self, name: &str) -> Result<z3::ast::Real<'_>> {
-        // For now, create a new angle variable on demand  
-        Ok(z3::ast::Real::new_const(self.ctx, format!("angle_{}", name)))
+        // For now, create a new angle variable on demand
+        Ok(z3::ast::Real::new_const(
+            self.ctx,
+            format!("angle_{}", name),
+        ))
     }
 }
 
