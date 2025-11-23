@@ -40,9 +40,9 @@ impl Constraint for CircleRadiusConstraint {
         let target_radius_meters = self.radius.to_meters();
 
         // Convert to rational representation for precision
-        // Use 10,000 as denominator for good precision (i32 limits)
-        let numerator = (target_radius_meters * 10_000.0).round() as i32;
-        let denominator = 10_000i32;
+        // Use 1,000,000 as denominator for high precision (same as other constraints)
+        let numerator = (target_radius_meters * 1_000_000.0).round() as i32;
+        let denominator = 1_000_000i32;
 
         let target = Real::from_real(context, numerator, denominator);
 
