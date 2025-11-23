@@ -1281,12 +1281,12 @@ impl Line {
 
 ---
 
-### Phase 11: Angle Constraints (Unit Circle Method)
+### Phase 11: Angle Constraints (Unit Circle Method) ✅ COMPLETED
 
 **Deliverables:**
-- AngleBetweenLinesConstraint
-- Unit vector helper functions
-- Dot/Cross product in Z3
+- ✅ AngleBetweenLinesConstraint
+- ✅ Unit vector helper functions
+- ✅ Dot/Cross product in Z3
 
 **Implementation:**
 
@@ -1375,10 +1375,10 @@ impl Constraint for AngleBetweenLinesConstraint {
 ```
 
 **Tests:**
-- [ ] Right angle (90°) between perpendicular lines
-- [ ] 45° angle
-- [ ] 60° angle
-- [ ] 0° angle (parallel lines)
+- [x] Right angle (90°) between perpendicular lines
+- [x] 45° angle
+- [x] 60° angle
+- [x] 0° angle (parallel lines)
 
 **Property-Based Test:**
 ```rust

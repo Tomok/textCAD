@@ -18,7 +18,7 @@ pub mod units;
 pub use constraint::{Constraint, ConstraintFactory, SketchQuery};
 pub use constraints::{
     CoincidentPointsConstraint, FixedPositionConstraint, LineLengthConstraint,
-    ParallelLinesConstraint, PerpendicularLinesConstraint,
+    ParallelLinesConstraint, PerpendicularLinesConstraint, PointOnLineConstraint,
 };
 pub use entities::{Circle, Line, Point2D, PointId};
 pub use entity::{CircleId, LineId};
