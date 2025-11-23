@@ -178,8 +178,11 @@ fn test_point_on_line_with_perpendicular_lines() {
     let (x6, y6) = solution.get_point_coordinates(p6).unwrap();
 
     // p5 should be on horizontal line y=0
-    assert!((y5 - 0.0).abs() < 1e-6, "Point should be on horizontal line");
-    
+    assert!(
+        (y5 - 0.0).abs() < 1e-6,
+        "Point should be on horizontal line"
+    );
+
     // p6 should be on vertical line x=2
     assert!((x6 - 2.0).abs() < 1e-6, "Point should be on vertical line");
 }
@@ -295,7 +298,7 @@ fn test_existing_constraints_still_work() {
         Length::meters(1.0),
         Length::meters(1.0),
     ));
-    
+
     sketch.add_constraint(LineLengthConstraint::new(line1, Length::meters(5.0)));
     sketch.add_constraint(LineLengthConstraint::new(line2, Length::meters(2.0)));
     sketch.add_constraint(PerpendicularLinesConstraint::new(line1, line2));
@@ -328,10 +331,7 @@ fn test_existing_constraints_still_work() {
     let dir1 = (x2 - x1, y2 - y1);
     let dir2 = (x4 - x3, y4 - y3);
     let dot_product = dir1.0 * dir2.0 + dir1.1 * dir2.1;
-    assert!(
-        dot_product.abs() < 1e-6,
-        "Lines should be perpendicular"
-    );
+    assert!(dot_product.abs() < 1e-6, "Lines should be perpendicular");
 }
 
 /// Test mixed constraints with point relationships
@@ -364,7 +364,7 @@ fn test_mixed_constraints_complex_relationship() {
         Length::meters(4.0),
         Length::meters(0.0),
     ));
-    
+
     // Position C to make a right triangle (CA ⊥ AB)
     // Since AB is horizontal (0,0) to (4,0), CA must be vertical
     sketch.add_constraint(FixedPositionConstraint::new(
@@ -449,9 +449,7 @@ fn test_constraint_modification_scenarios() {
         ));
         sketch.add_constraint(PointOnLineConstraint::new(line, p3));
 
-        let solution = sketch
-            .solve_and_extract()
-            .expect("Base case should work");
+        let solution = sketch.solve_and_extract().expect("Base case should work");
         let (_, y3) = solution.get_point_coordinates(p3).unwrap();
         assert!((y3 - 0.0).abs() < 1e-6);
     }
@@ -511,7 +509,7 @@ fn test_unsatisfiable_constraint_detection_still_works() {
     // Try to put point on line but also fix it far away from line
     sketch.add_constraint(FixedPositionConstraint::new(
         p3,
-        Length::meters(1.5), // On the line
+        Length::meters(1.5),  // On the line
         Length::meters(10.0), // Far from the line
     ));
     sketch.add_constraint(PointOnLineConstraint::new(line, p3));

@@ -65,34 +65,36 @@ impl Constraint for PointOnLineConstraint {
             .map_err(|_| TextCadError::EntityError(format!("Line {:?} not found", self.line)))?;
 
         // Get point coordinates for all three points
-        let (px, py) = sketch.point_variables(self.point).map_err(|_| {
-            TextCadError::EntityError(format!("Point {:?} not found", self.point))
-        })?;
-        
+        let (px, py) = sketch
+            .point_variables(self.point)
+            .map_err(|_| TextCadError::EntityError(format!("Point {:?} not found", self.point)))?;
+
         let (p1x, p1y) = sketch.point_variables(start_id).map_err(|_| {
             TextCadError::EntityError(format!("Line start point {:?} not found", start_id))
         })?;
-        
+
         let (p2x, p2y) = sketch.point_variables(end_id).map_err(|_| {
             TextCadError::EntityError(format!("Line end point {:?} not found", end_id))
         })?;
 
         // Introduce parameter t for this constraint
         // Use unique parameter name based on line and point IDs to avoid conflicts
-        let t_name = format!("t_line_{}_point_{}", 
-            self.line.0.into_raw_parts().0, 
-            self.point.0.into_raw_parts().0);
+        let t_name = format!(
+            "t_line_{}_point_{}",
+            self.line.0.into_raw_parts().0,
+            self.point.0.into_raw_parts().0
+        );
         let t = Real::new_const(context, t_name);
 
         // Apply parametric line equation: point = p1 + t * (p2 - p1)
         // px = p1x + t * (p2x - p1x)
         // py = p1y + t * (p2y - p1y)
-        
-        let dx = (&p2x).sub(&p1x);  // p2x - p1x
-        let dy = (&p2y).sub(&p1y);  // p2y - p1y
-        
-        let point_x = (&p1x).add(&(&t).mul(&dx));  // p1x + t * dx
-        let point_y = (&p1y).add(&(&t).mul(&dy));  // p1y + t * dy
+
+        let dx = (&p2x).sub(&p1x); // p2x - p1x
+        let dy = (&p2y).sub(&p1y); // p2y - p1y
+
+        let point_x = (&p1x).add(&(&t).mul(&dx)); // p1x + t * dx
+        let point_y = (&p1y).add(&(&t).mul(&dy)); // p1y + t * dy
 
         // Assert that the point coordinates equal the parametric expressions
         solver.assert(&px._eq(&point_x));
@@ -101,8 +103,8 @@ impl Constraint for PointOnLineConstraint {
         // Constrain parameter t to be within [0, 1] to ensure point is on line segment
         let zero = Real::from_real(context, 0, 1);
         let one = Real::from_real(context, 1, 1);
-        solver.assert(&t.ge(&zero));  // t >= 0
-        solver.assert(&t.le(&one));   // t <= 1
+        solver.assert(&t.ge(&zero)); // t >= 0
+        solver.assert(&t.le(&one)); // t <= 1
 
         Ok(())
     }
@@ -207,7 +209,7 @@ mod tests {
         let p1 = PointId(Index::from_raw_parts(0, 0));
         let p2 = PointId(Index::from_raw_parts(1, 0));
         let line_id = LineId(Index::from_raw_parts(0, 0));
-        
+
         // Point p3 will be constrained to lie on the line
         let p3 = PointId(Index::from_raw_parts(2, 0));
 
@@ -232,7 +234,7 @@ mod tests {
 
         // Check that we have exactly 4 assertions:
         // 1. px = p1x + t * (p2x - p1x)
-        // 2. py = p1y + t * (p2y - p1y) 
+        // 2. py = p1y + t * (p2y - p1y)
         // 3. t >= 0
         // 4. t <= 1
         assert_eq!(solver.get_assertions().len(), 4);
@@ -395,27 +397,27 @@ mod tests {
     #[cfg(test)]
     mod property_tests {
         use super::*;
-        use proptest::prelude::*;
         use crate::constraints::FixedPositionConstraint;
         use crate::sketch::Sketch;
         use crate::units::Length;
+        use proptest::prelude::*;
         use z3::{Config, Context};
 
         proptest! {
             #[test]
             fn prop_point_on_line_parameter_bounds(
-                x1 in -10.0f64..10.0f64, 
-                y1 in -10.0f64..10.0f64, 
-                x2 in -10.0f64..10.0f64, 
+                x1 in -10.0f64..10.0f64,
+                y1 in -10.0f64..10.0f64,
+                x2 in -10.0f64..10.0f64,
                 y2 in -10.0f64..10.0f64
             ) {
                 // Skip degenerate cases where the line has zero length
                 prop_assume!((x2 - x1).abs() > 1e-3 || (y2 - y1).abs() > 1e-3);
-                
+
                 let cfg = Config::new();
                 let ctx = Context::new(&cfg);
                 let mut sketch = Sketch::new(&ctx);
-                
+
                 let p1 = sketch.add_point(Some("p1".to_string()));
                 let p2 = sketch.add_point(Some("p2".to_string()));
                 sketch.add_constraint(FixedPositionConstraint::new(
@@ -428,37 +430,37 @@ mod tests {
                     Length::meters(x2),
                     Length::meters(y2),
                 ));
-                
+
                 let line = sketch.add_line(p1, p2, Some("test_line".to_string()));
                 let p = sketch.add_point(Some("point_on_line".to_string()));
                 sketch.add_constraint(PointOnLineConstraint::new(line, p));
-                
+
                 let solution_result = sketch.solve_and_extract();
                 if let Ok(solution) = solution_result {
                     let (px, py) = solution.get_point_coordinates(p).unwrap();
-                    
+
                     // Verify point is on line segment
                     // Compute t parameter and verify 0 <= t <= 1
                     let dx = x2 - x1;
                     let dy = y2 - y1;
                     let length_sq = dx * dx + dy * dy;
-                    
+
                     if length_sq > 1e-6 {
                         // Project point onto line to find parameter t
                         let dot_product = (px - x1) * dx + (py - y1) * dy;
                         let t = dot_product / length_sq;
-                        
-                        prop_assert!(t >= -1e-6 && t <= 1.0 + 1e-6, 
-                            "Parameter t should be in [0,1], got: {}, point: ({}, {}), line: ({}, {}) to ({}, {})", 
+
+                        prop_assert!(t >= -1e-6 && t <= 1.0 + 1e-6,
+                            "Parameter t should be in [0,1], got: {}, point: ({}, {}), line: ({}, {}) to ({}, {})",
                             t, px, py, x1, y1, x2, y2);
-                            
+
                         // Verify point lies exactly on the line
                         let expected_px = x1 + t * dx;
                         let expected_py = y1 + t * dy;
-                        
-                        prop_assert!((px - expected_px).abs() < 1e-3, 
+
+                        prop_assert!((px - expected_px).abs() < 1e-3,
                             "Point x-coordinate should match parametric equation");
-                        prop_assert!((py - expected_py).abs() < 1e-3, 
+                        prop_assert!((py - expected_py).abs() < 1e-3,
                             "Point y-coordinate should match parametric equation");
                     }
                 }
@@ -466,23 +468,23 @@ mod tests {
 
             #[test]
             fn prop_point_on_line_collinear_verification(
-                x1 in -5.0f64..5.0f64, 
-                y1 in -5.0f64..5.0f64, 
-                x2 in -5.0f64..5.0f64, 
+                x1 in -5.0f64..5.0f64,
+                y1 in -5.0f64..5.0f64,
+                x2 in -5.0f64..5.0f64,
                 y2 in -5.0f64..5.0f64
             ) {
                 // Skip degenerate cases where the line has zero length
                 prop_assume!((x2 - x1).abs() > 1e-3 || (y2 - y1).abs() > 1e-3);
-                
+
                 let cfg = Config::new();
                 let ctx = Context::new(&cfg);
                 let mut sketch = Sketch::new(&ctx);
-                
+
                 let p1 = sketch.add_point(Some("start".to_string()));
                 let p2 = sketch.add_point(Some("end".to_string()));
                 let line = sketch.add_line(p1, p2, Some("line".to_string()));
                 let p3 = sketch.add_point(Some("on_line".to_string()));
-                
+
                 sketch.add_constraint(FixedPositionConstraint::new(
                     p1, Length::meters(x1), Length::meters(y1)
                 ));
@@ -490,49 +492,49 @@ mod tests {
                     p2, Length::meters(x2), Length::meters(y2)
                 ));
                 sketch.add_constraint(PointOnLineConstraint::new(line, p3));
-                
+
                 let solution_result = sketch.solve_and_extract();
                 if let Ok(solution) = solution_result {
                     let (px1, py1) = solution.get_point_coordinates(p1).unwrap();
                     let (px2, py2) = solution.get_point_coordinates(p2).unwrap();
                     let (px3, py3) = solution.get_point_coordinates(p3).unwrap();
-                    
+
                     // Check collinearity using cross product
                     // Points are collinear if (p3-p1) × (p2-p1) = 0
                     let v1x = px2 - px1;  // p2 - p1
                     let v1y = py2 - py1;
-                    let v2x = px3 - px1;  // p3 - p1  
+                    let v2x = px3 - px1;  // p3 - p1
                     let v2y = py3 - py1;
-                    
+
                     let cross_product = v1x * v2y - v1y * v2x;
-                    prop_assert!(cross_product.abs() < 1e-6, 
+                    prop_assert!(cross_product.abs() < 1e-6,
                         "Points should be collinear, cross product: {}", cross_product);
                 }
             }
 
             #[test]
             fn prop_multiple_points_on_same_line_are_collinear(
-                x1 in -5.0f64..5.0f64, 
-                y1 in -5.0f64..5.0f64, 
-                x2 in -5.0f64..5.0f64, 
+                x1 in -5.0f64..5.0f64,
+                y1 in -5.0f64..5.0f64,
+                x2 in -5.0f64..5.0f64,
                 y2 in -5.0f64..5.0f64
             ) {
                 // Skip degenerate cases where the line has zero length
                 prop_assume!((x2 - x1).abs() > 1e-3 || (y2 - y1).abs() > 1e-3);
-                
+
                 let cfg = Config::new();
                 let ctx = Context::new(&cfg);
                 let mut sketch = Sketch::new(&ctx);
-                
+
                 let p1 = sketch.add_point(Some("start".to_string()));
                 let p2 = sketch.add_point(Some("end".to_string()));
                 let line = sketch.add_line(p1, p2, Some("line".to_string()));
-                
+
                 // Add multiple points on the same line
                 let p3 = sketch.add_point(Some("on_line_1".to_string()));
                 let p4 = sketch.add_point(Some("on_line_2".to_string()));
                 let p5 = sketch.add_point(Some("on_line_3".to_string()));
-                
+
                 sketch.add_constraint(FixedPositionConstraint::new(
                     p1, Length::meters(x1), Length::meters(y1)
                 ));
@@ -542,7 +544,7 @@ mod tests {
                 sketch.add_constraint(PointOnLineConstraint::new(line, p3));
                 sketch.add_constraint(PointOnLineConstraint::new(line, p4));
                 sketch.add_constraint(PointOnLineConstraint::new(line, p5));
-                
+
                 let solution_result = sketch.solve_and_extract();
                 if let Ok(solution) = solution_result {
                     let points = [p1, p2, p3, p4, p5];
@@ -551,22 +553,22 @@ mod tests {
                         let (x, y) = solution.get_point_coordinates(pid).unwrap();
                         coords.push((x, y));
                     }
-                    
+
                     // Check that all points are collinear with the line p1-p2
                     let (x1, y1) = coords[0];
                     let (x2, y2) = coords[1];
                     let line_dx = x2 - x1;
                     let line_dy = y2 - y1;
-                    
+
                     for i in 2..coords.len() {
                         let (xi, yi) = coords[i];
                         let point_dx = xi - x1;
                         let point_dy = yi - y1;
-                        
+
                         // Cross product should be zero for collinear points
                         let cross_product = line_dx * point_dy - line_dy * point_dx;
-                        prop_assert!(cross_product.abs() < 1e-6, 
-                            "Point {} should be collinear with line, cross product: {}", 
+                        prop_assert!(cross_product.abs() < 1e-6,
+                            "Point {} should be collinear with line, cross product: {}",
                             i, cross_product);
                     }
                 }

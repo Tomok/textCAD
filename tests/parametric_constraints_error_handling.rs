@@ -86,7 +86,10 @@ fn test_invalid_point_reference() {
 
     match result {
         Err(TextCadError::EntityError(msg)) => {
-            assert!(msg.contains("Point"), "Error should mention point not found");
+            assert!(
+                msg.contains("Point"),
+                "Error should mention point not found"
+            );
         }
         other => panic!("Expected EntityError, got: {:?}", other),
     }
@@ -110,7 +113,7 @@ fn test_invalid_line_endpoint_reference() {
     // we'll create a scenario where a line references a non-existent endpoint
     // by using a valid line but then testing constraint with invalid references.
     // This is a simplified test that still covers error handling.
-    
+
     let p2 = sketch.add_point(Some("valid_end".to_string()));
     let line = sketch.add_line(p1, p2, Some("valid_line".to_string()));
     let valid_point = sketch.add_point(Some("point_on_line".to_string()));
@@ -172,7 +175,7 @@ fn test_unsatisfiable_parametric_constraints() {
     // Also fix point far from the line (impossible)
     sketch.add_constraint(FixedPositionConstraint::new(
         p3,
-        Length::meters(2.5), // On the line x-wise
+        Length::meters(2.5),  // On the line x-wise
         Length::meters(10.0), // Far from the line y-wise
     ));
 
@@ -288,7 +291,7 @@ fn test_memory_safety_with_entity_removal() {
     // Since we can't directly access private fields to remove entities,
     // we'll test a simpler form of memory safety by ensuring the system
     // doesn't crash under normal usage patterns.
-    
+
     // Create another constraint that should work fine
     let p4 = sketch.add_point(Some("additional_point".to_string()));
     sketch.add_constraint(FixedPositionConstraint::new(
@@ -296,7 +299,7 @@ fn test_memory_safety_with_entity_removal() {
         Length::meters(2.0),
         Length::meters(2.0),
     ));
-    
+
     // This tests that the constraint system handles multiple solutions correctly
     let result2 = sketch.solve_and_extract();
     assert!(result2.is_ok(), "Additional constraints should work");
@@ -385,7 +388,7 @@ fn test_nan_and_infinity_handling() {
             // If the system rejects them, that's also acceptable
         }
     }
-    
+
     // The main test is that we don't crash or panic
 }
 

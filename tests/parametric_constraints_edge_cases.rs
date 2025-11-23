@@ -107,8 +107,14 @@ fn test_point_on_degenerate_line() {
     let (x3, y3) = solution.get_point_coordinates(p3).unwrap();
 
     // Point should be at the same location as the degenerate line
-    assert!((x3 - x1).abs() < 1e-6, "Point should be at degenerate line location");
-    assert!((y3 - y1).abs() < 1e-6, "Point should be at degenerate line location");
+    assert!(
+        (x3 - x1).abs() < 1e-6,
+        "Point should be at degenerate line location"
+    );
+    assert!(
+        (y3 - y1).abs() < 1e-6,
+        "Point should be at degenerate line location"
+    );
 }
 
 /// Test PointOnLineConstraint with points already at line endpoints
@@ -263,9 +269,14 @@ fn test_point_on_line_different_orientations() {
         ));
         sketch.add_constraint(PointOnLineConstraint::new(line, p3));
 
-        let solution = sketch.solve_and_extract().expect("Horizontal line should work");
+        let solution = sketch
+            .solve_and_extract()
+            .expect("Horizontal line should work");
         let (_, y3) = solution.get_point_coordinates(p3).unwrap();
-        assert!((y3 - 2.0).abs() < 1e-6, "Point should be on horizontal line y=2");
+        assert!(
+            (y3 - 2.0).abs() < 1e-6,
+            "Point should be on horizontal line y=2"
+        );
     }
 
     // Test vertical line
@@ -288,9 +299,14 @@ fn test_point_on_line_different_orientations() {
         ));
         sketch.add_constraint(PointOnLineConstraint::new(line, p3));
 
-        let solution = sketch.solve_and_extract().expect("Vertical line should work");
+        let solution = sketch
+            .solve_and_extract()
+            .expect("Vertical line should work");
         let (x3, _) = solution.get_point_coordinates(p3).unwrap();
-        assert!((x3 - 3.0).abs() < 1e-6, "Point should be on vertical line x=3");
+        assert!(
+            (x3 - 3.0).abs() < 1e-6,
+            "Point should be on vertical line x=3"
+        );
     }
 
     // Test diagonal line (45°)
@@ -313,7 +329,9 @@ fn test_point_on_line_different_orientations() {
         ));
         sketch.add_constraint(PointOnLineConstraint::new(line, p3));
 
-        let solution = sketch.solve_and_extract().expect("Diagonal line should work");
+        let solution = sketch
+            .solve_and_extract()
+            .expect("Diagonal line should work");
         let (x3, y3) = solution.get_point_coordinates(p3).unwrap();
 
         // Point should be on line y = x

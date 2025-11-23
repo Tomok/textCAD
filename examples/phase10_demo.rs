@@ -14,34 +14,34 @@ use z3::{Config, Context};
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🟦 Phase 10 Demo: Parametric Constraints");
     println!("==========================================");
-    
+
     // Example 1: Basic Point on Line Segment
     println!("\n📍 Example 1: Basic Point on Line Segment");
     println!("------------------------------------------");
-    
+
     basic_point_on_line_demo()?;
-    
+
     // Example 2: Multiple Points on Same Line
     println!("\n📍 Example 2: Multiple Points on Same Line");
     println!("-------------------------------------------");
-    
+
     multiple_points_on_line_demo()?;
-    
+
     // Example 3: Geometric Construction - Triangle with Point on Base
     println!("\n📍 Example 3: Triangle Construction");
     println!("------------------------------------");
-    
+
     triangle_construction_demo()?;
-    
+
     // Example 4: Parametric Line Subdivision
     println!("\n📍 Example 4: Line Subdivision");
     println!("-------------------------------");
-    
+
     line_subdivision_demo()?;
-    
+
     println!("\n✅ Phase 10 Demo Complete!");
     println!("All parametric constraints solved successfully.");
-    
+
     Ok(())
 }
 
@@ -95,7 +95,10 @@ fn basic_point_on_line_demo() -> Result<(), Box<dyn std::error::Error>> {
     println!("  Parameter t: {:.3} (should be in [0,1])", t);
 
     // Verify the constraint is satisfied
-    assert!(t >= -1e-6 && t <= 1.0 + 1e-6, "Parameter t should be in [0,1]");
+    assert!(
+        t >= -1e-6 && t <= 1.0 + 1e-6,
+        "Parameter t should be in [0,1]"
+    );
     assert!((y3 - 0.0).abs() < 1e-6, "Point should be on y=0 line");
 
     Ok(())
@@ -153,7 +156,7 @@ fn multiple_points_on_line_demo() -> Result<(), Box<dyn std::error::Error>> {
     println!("Points on line:");
     for (i, &point_id) in points_on_line.iter().enumerate() {
         let (x, y) = solution.get_point_coordinates(point_id)?;
-        
+
         // Calculate parameter t for this point
         let (start_x, start_y) = solution.get_point_coordinates(start)?;
         let (end_x, end_y) = solution.get_point_coordinates(end)?;
@@ -167,9 +170,12 @@ fn multiple_points_on_line_demo() -> Result<(), Box<dyn std::error::Error>> {
         };
 
         println!("  {}: ({:.3}, {:.3}) [t = {:.3}]", point_names[i], x, y, t);
-        
+
         // Verify constraint satisfaction
-        assert!(t >= -1e-6 && t <= 1.0 + 1e-6, "Parameter t should be in [0,1]");
+        assert!(
+            t >= -1e-6 && t <= 1.0 + 1e-6,
+            "Parameter t should be in [0,1]"
+        );
     }
 
     Ok(())
@@ -249,11 +255,7 @@ fn triangle_construction_demo() -> Result<(), Box<dyn std::error::Error>> {
     println!("  D divides AB in ratio t = {:.3} : {:.3}", t, 1.0 - t);
 
     // Verify triangle side lengths
-    let side_lengths = [
-        ("AB", ab, 6.0),
-        ("BC", bc, 5.0),
-        ("CA", ca, 5.0),
-    ];
+    let side_lengths = [("AB", ab, 6.0), ("BC", bc, 5.0), ("CA", ca, 5.0)];
 
     println!("Triangle side lengths:");
     for (name, line_id, expected) in side_lengths {
@@ -262,7 +264,10 @@ fn triangle_construction_demo() -> Result<(), Box<dyn std::error::Error>> {
         let (end_x, end_y) = solution.get_point_coordinates(line.end)?;
         let length = ((end_x - start_x).powi(2) + (end_y - start_y).powi(2)).sqrt();
         println!("  {}: {:.3}m (expected: {:.1}m)", name, length, expected);
-        assert!((length - expected).abs() < 1e-3, "Side length should match expected value");
+        assert!(
+            (length - expected).abs() < 1e-3,
+            "Side length should match expected value"
+        );
     }
 
     Ok(())
@@ -310,12 +315,15 @@ fn line_subdivision_demo() -> Result<(), Box<dyn std::error::Error>> {
 
     // Display subdivision results
     println!("Line segment subdivision:");
-    
+
     let (start_x, start_y) = solution.get_point_coordinates(start)?;
     let (end_x, end_y) = solution.get_point_coordinates(end)?;
-    
-    println!("Segment from ({:.3}, {:.3}) to ({:.3}, {:.3})", start_x, start_y, end_x, end_y);
-    
+
+    println!(
+        "Segment from ({:.3}, {:.3}) to ({:.3}, {:.3})",
+        start_x, start_y, end_x, end_y
+    );
+
     let segment_dx = end_x - start_x;
     let segment_dy = end_y - start_y;
     let segment_length = (segment_dx.powi(2) + segment_dy.powi(2)).sqrt();
@@ -327,12 +335,12 @@ fn line_subdivision_demo() -> Result<(), Box<dyn std::error::Error>> {
     println!("Division points on segment:");
     for (i, &point_id) in division_points.iter().enumerate() {
         let (x, y) = solution.get_point_coordinates(point_id)?;
-        
+
         // Calculate parameter t and distance from start
         let point_dx = x - start_x;
         let point_dy = y - start_y;
         let distance_from_start = (point_dx.powi(2) + point_dy.powi(2)).sqrt();
-        
+
         let length_sq = segment_dx.powi(2) + segment_dy.powi(2);
         let t = if length_sq > 1e-6 {
             (point_dx * segment_dx + point_dy * segment_dy) / length_sq
@@ -340,12 +348,20 @@ fn line_subdivision_demo() -> Result<(), Box<dyn std::error::Error>> {
             0.0
         };
 
-        println!("  {}: ({:.3}, {:.3}) [t = {:.3}, distance = {:.3}]", 
-                 division_names[i], x, y, t, distance_from_start);
-        
+        println!(
+            "  {}: ({:.3}, {:.3}) [t = {:.3}, distance = {:.3}]",
+            division_names[i], x, y, t, distance_from_start
+        );
+
         // Verify constraint satisfaction
-        assert!(t >= -1e-6 && t <= 1.0 + 1e-6, "Parameter t should be in [0,1]");
-        assert!(distance_from_start <= segment_length + 1e-6, "Distance should not exceed segment length");
+        assert!(
+            t >= -1e-6 && t <= 1.0 + 1e-6,
+            "Parameter t should be in [0,1]"
+        );
+        assert!(
+            distance_from_start <= segment_length + 1e-6,
+            "Distance should not exceed segment length"
+        );
     }
 
     Ok(())

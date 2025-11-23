@@ -67,7 +67,7 @@ fn test_point_on_line_constraint_basic_integration() {
     let dx = x2 - x1;
     let dy = y2 - y1;
     let length_sq = dx * dx + dy * dy;
-    
+
     if length_sq > 1e-6 {
         let t = ((x3 - x1) * dx + (y3 - y1) * dy) / length_sq;
         assert!(
@@ -299,5 +299,5 @@ fn test_point_on_line_constraint_combined_with_other_constraints() {
     // p3 = p1 + t * (p2 - p1) = (0,0) + t * (6,0) = (6t, 0)
     // x3 = 6t = 2 => t = 1/3
     let expected_t = 2.0 / 6.0;
-    assert!((expected_t - 1.0f64/3.0f64).abs() < 1e-6);
+    assert!((expected_t - 1.0f64 / 3.0f64).abs() < 1e-6);
 }
