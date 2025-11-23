@@ -32,7 +32,22 @@ cargo llvm-cov --all-features --workspace --open  # Generate and open HTML repor
 # With direnv (optional): environment auto-activates when entering directory
 ```
 
-**Important**: The project is configured to use system Z3 (not compiled from source). The Nix environment provides both Rust toolchain and Z3 with proper environment variables (`Z3_SYS_Z3_HEADER`, `LIBCLANG_PATH`).
+**Important**: The project supports two Z3 configuration modes:
+- **System Z3 (default)**: Uses Z3 installed on your system. Faster to compile, requires Z3 to be installed.
+- **Vendored Z3**: Builds and statically links Z3 from source. Slower to compile but doesn't require system Z3.
+
+The Nix environment provides both Rust toolchain and system Z3 with proper environment variables (`Z3_SYS_Z3_HEADER`, `LIBCLANG_PATH`).
+
+```bash
+# Build with system Z3 (default, requires Z3 installed)
+cargo build
+
+# Build with vendored Z3 (builds Z3 from source)
+cargo build --features vendored-z3
+
+# Run tests with vendored Z3
+cargo test --features vendored-z3
+```
 
 ## Git Hooks
 
@@ -164,7 +179,9 @@ Coverage reports help identify untested code paths and ensure comprehensive test
 ## Development Notes
 
 - Rust edition 2024 is used
-- Z3 crate version 0.12 with `default-features = false` to use system Z3
+- Z3 crate version 0.12 with two configuration modes:
+  - **Default**: Uses system Z3 (`default-features = false`)
+  - **vendored-z3 feature**: Builds Z3 from source (`static-link-z3` feature)
 - Property-based testing with `proptest` crate
 - Generational arena pattern for entity management
 - CI/CD through GitHub Actions with Nix caching

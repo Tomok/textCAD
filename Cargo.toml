@@ -4,8 +4,17 @@ version = "0.1.0"
 edition = "2024"
 license = "MIT"
 
+[features]
+# By default, use system Z3 (requires Z3 to be installed)
+default = []
+# Enable vendored-z3 to build and statically link Z3 from source
+# This is slower to compile but doesn't require system Z3
+vendored-z3 = ["z3/static-link-z3"]
+
 [dependencies]
-# Z3 with static-link-z3 DISABLED to use system Z3
+# Z3 SMT solver
+# By default uses system Z3 (default-features = false)
+# With vendored-z3 feature, builds Z3 from source via static-link-z3
 z3 = { version = "0.12", default-features = false }
 thiserror = "1.0"
 generational-arena = "0.2"
