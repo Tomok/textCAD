@@ -7,8 +7,8 @@ use generational_arena::Arena;
 use z3::{Context, SatResult, Solver};
 
 use crate::constraint::{Constraint, SketchQuery};
-use crate::entities::{Line, Point2D, PointId};
-use crate::entity::LineId;
+use crate::entities::{Circle, Line, Point2D, PointId};
+use crate::entity::{CircleId, LineId};
 use crate::error::{Result, TextCadError};
 use crate::solution::Solution;
 
@@ -23,6 +23,8 @@ pub struct Sketch<'ctx> {
     points: Arena<Point2D<'ctx>>,
     /// Arena for managing Line entities
     lines: Arena<Line>,
+    /// Arena for managing Circle entities
+    circles: Arena<Circle<'ctx>>,
     /// Vector of constraints that have been added to the sketch
     constraints: Vec<Box<dyn Constraint>>,
 }
@@ -46,12 +48,14 @@ impl<'ctx> Sketch<'ctx> {
         let solver = Solver::new(ctx);
         let points = Arena::new();
         let lines = Arena::new();
+        let circles = Arena::new();
         let constraints = Vec::new();
         Self {
             ctx,
             solver,
             points,
             lines,
+            circles,
             constraints,
         }
     }
@@ -205,6 +209,61 @@ impl<'ctx> Sketch<'ctx> {
         self.lines.get(id.into())
     }
 
+    /// Add a new circle to the sketch
+    ///
+    /// Creates a new Circle with a center point and radius and adds it to the circles arena.
+    ///
+    /// # Arguments
+    /// * `center` - PointId of the center point  
+    /// * `radius` - Radius of the circle
+    /// * `name` - Optional name for debugging and display
+    ///
+    /// # Returns
+    /// CircleId that can be used to reference this circle
+    ///
+    /// # Example
+    /// ```
+    /// use z3::{Config, Context};
+    /// use textcad::{Sketch, Length};
+    ///
+    /// let cfg = Config::new();
+    /// let ctx = Context::new(&cfg);
+    /// let mut sketch = Sketch::new(&ctx);
+    /// let center = sketch.add_point(Some("center".to_string()));
+    /// let circle = sketch.add_circle(center, Some("circle1".to_string()));
+    /// ```
+    pub fn add_circle(&mut self, center: PointId, name: Option<String>) -> CircleId {
+        let idx = self.circles.insert_with(|idx| {
+            let id = CircleId::from(idx);
+            Circle::new(id, center, self.ctx, name)
+        });
+        CircleId::from(idx)
+    }
+
+    /// Get a reference to a circle by its ID
+    ///
+    /// # Arguments  
+    /// * `id` - The CircleId to look up
+    ///
+    /// # Returns
+    /// Option containing a reference to the Circle, or None if not found
+    ///
+    /// # Example
+    /// ```
+    /// use z3::{Config, Context};
+    /// use textcad::{Sketch, Length};
+    ///
+    /// let cfg = Config::new();
+    /// let ctx = Context::new(&cfg);
+    /// let mut sketch = Sketch::new(&ctx);
+    /// let center = sketch.add_point(None);
+    /// let id = sketch.add_circle(center, Some("test".to_string()));
+    /// let circle = sketch.get_circle(id).unwrap();
+    /// ```
+    pub fn get_circle(&self, id: CircleId) -> Option<&Circle<'ctx>> {
+        self.circles.get(id.into())
+    }
+
     /// Add a constraint to the sketch
     pub fn add_constraint(&mut self, constraint: impl Constraint + 'static) {
         self.constraints.push(Box::new(constraint));
@@ -252,6 +311,17 @@ impl<'ctx> Sketch<'ctx> {
             solution.extract_line_parameters(line_id, start_coords, end_coords)?;
         }
 
+        // Extract parameters for all circles
+        for (idx, circle) in self.circles.iter() {
+            let circle_id = CircleId::from(idx);
+
+            // Get center point coordinates
+            let center_coords = solution.get_point_coordinates(circle.center)?;
+
+            // Extract circle parameters
+            solution.extract_circle_parameters(circle_id, center_coords, &circle.radius)?;
+        }
+
         Ok(solution)
     }
 }
@@ -275,6 +345,20 @@ impl<'ctx> SketchQuery for Sketch<'ctx> {
             Err(TextCadError::EntityError(format!(
                 "Line {:?} not found",
                 line_id
+            )))
+        }
+    }
+
+    fn circle_center_and_radius(
+        &self,
+        circle_id: CircleId,
+    ) -> Result<(PointId, z3::ast::Real<'_>)> {
+        if let Some(circle) = self.get_circle(circle_id) {
+            Ok((circle.center, circle.radius.clone()))
+        } else {
+            Err(TextCadError::EntityError(format!(
+                "Circle {:?} not found",
+                circle_id
             )))
         }
     }
@@ -1005,5 +1089,69 @@ mod tests {
         // Check angle is correct (from (3,0) to (0,4))
         let expected_angle = (4.0_f64 - 0.0_f64).atan2(0.0_f64 - 3.0_f64); // atan2(4, -3)
         assert!((hyp_params.angle - expected_angle).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_circle_creation_and_management() {
+        let cfg = Config::new();
+        let ctx = Context::new(&cfg);
+        let mut sketch = Sketch::new(&ctx);
+
+        // Add center point
+        let center = sketch.add_point(Some("center".to_string()));
+
+        // Add circle with center
+        let circle_id = sketch.add_circle(center, Some("test_circle".to_string()));
+
+        // Verify circle was created
+        let circle = sketch.get_circle(circle_id).unwrap();
+        assert_eq!(circle.id, circle_id);
+        assert_eq!(circle.center, center);
+        assert_eq!(circle.name, Some("test_circle".to_string()));
+
+        // Verify Z3 variable was created with correct name
+        assert!(circle.radius.to_string().contains("test_circle_radius"));
+
+        // Verify point and circle are in correct arenas
+        assert_eq!(sketch.points.len(), 1);
+        assert_eq!(sketch.circles.len(), 1);
+        assert!(sketch.get_point(center).is_some());
+    }
+
+    #[test]
+    fn test_circle_without_name() {
+        let cfg = Config::new();
+        let ctx = Context::new(&cfg);
+        let mut sketch = Sketch::new(&ctx);
+
+        let center = sketch.add_point(None);
+        let circle_id = sketch.add_circle(center, None);
+
+        let circle = sketch.get_circle(circle_id).unwrap();
+        assert_eq!(circle.name, None);
+        assert!(circle.display_name().starts_with("Circle"));
+        assert!(circle.radius.to_string().contains("c_radius"));
+    }
+
+    #[test]
+    fn test_multiple_circles() {
+        let cfg = Config::new();
+        let ctx = Context::new(&cfg);
+        let mut sketch = Sketch::new(&ctx);
+
+        let center1 = sketch.add_point(Some("center1".to_string()));
+        let center2 = sketch.add_point(Some("center2".to_string()));
+
+        let circle1 = sketch.add_circle(center1, Some("circle1".to_string()));
+        let circle2 = sketch.add_circle(center2, Some("circle2".to_string()));
+
+        // Verify they have different IDs and radius variables
+        assert_ne!(circle1, circle2);
+        let c1 = sketch.get_circle(circle1).unwrap();
+        let c2 = sketch.get_circle(circle2).unwrap();
+        assert_ne!(c1.radius.to_string(), c2.radius.to_string());
+
+        // Verify sketch contains both circles
+        assert_eq!(sketch.circles.len(), 2);
     }
 }

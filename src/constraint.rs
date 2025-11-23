@@ -1,5 +1,5 @@
 use crate::entities::PointId;
-use crate::entity::LineId;
+use crate::entity::{CircleId, LineId};
 use crate::error::Result;
 use z3::ast::Real;
 
@@ -32,6 +32,9 @@ pub trait SketchQuery {
 
     /// Get the endpoint PointIds for a line
     fn line_endpoints(&self, line_id: LineId) -> Result<(PointId, PointId)>;
+
+    /// Get the center PointId and radius Real variable for a circle
+    fn circle_center_and_radius(&self, circle_id: CircleId) -> Result<(PointId, Real<'_>)>;
 
     /// Get the Z3 Real variable for a length/distance value
     fn length_variable(&self, name: &str) -> Result<Real<'_>>;

@@ -4,6 +4,8 @@
 
 use crate::constraint::{Constraint, SketchQuery};
 use crate::entities::PointId;
+// Note: CircleId import will be needed when circle constraints are implemented
+// use crate::entity::CircleId;
 use crate::error::{Result, TextCadError};
 use crate::units::Length;
 use z3::ast::{Ast, Real};
@@ -145,6 +147,15 @@ mod tests {
         }
 
         fn line_endpoints(&self, _line_id: crate::entity::LineId) -> Result<(PointId, PointId)> {
+            Err(TextCadError::InvalidConstraint(
+                "Not implemented".to_string(),
+            ))
+        }
+
+        fn circle_center_and_radius(
+            &self,
+            _circle_id: crate::entity::CircleId,
+        ) -> Result<(PointId, Real<'_>)> {
             Err(TextCadError::InvalidConstraint(
                 "Not implemented".to_string(),
             ))

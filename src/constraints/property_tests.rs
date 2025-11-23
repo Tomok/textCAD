@@ -535,4 +535,57 @@ mod tests {
                 "Factory length constraint failed: expected {}, got {}", line2_length, actual_length);
         }
     }
+
+    // Property tests for Circle entity (Z3-based implementation)
+    use crate::entities::Circle;
+    use crate::entity::CircleId;
+
+    // Property test: Circle creation with different Z3 contexts and names
+    proptest! {
+        #[test]
+        fn prop_circle_z3_variable_naming(
+            circle_index in 0usize..50usize,
+            center_index in 0usize..50usize,
+            has_name in any::<bool>(),
+            name_length in 1usize..10usize
+        ) {
+            use generational_arena::Index;
+            use z3::{Config, Context};
+
+            let cfg = Config::new();
+            let ctx = Context::new(&cfg);
+
+            let circle_id = CircleId::from(Index::from_raw_parts(circle_index, 0));
+            let center_id = crate::entities::PointId::from(Index::from_raw_parts(center_index, 0));
+
+            let name = if has_name {
+                Some("x".repeat(name_length))
+            } else {
+                None
+            };
+
+            let circle = Circle::new(circle_id, center_id, &ctx, name.clone());
+
+            // Circle properties should be properly set
+            prop_assert_eq!(circle.center_point(), center_id);
+            prop_assert_eq!(circle.center, center_id);
+            prop_assert_eq!(circle.id, circle_id);
+
+            // Check Z3 variable naming
+            let radius_var_str = circle.radius.to_string();
+            if let Some(expected_name) = name.as_ref() {
+                prop_assert_eq!(&circle.display_name(), expected_name);
+                let expected_radius_name = format!("{}_radius", expected_name);
+                prop_assert!(radius_var_str.contains(&expected_radius_name));
+            } else {
+                prop_assert!(circle.display_name().starts_with("Circle"));
+                prop_assert!(radius_var_str.contains("c_radius")); // Default naming
+            }
+
+            // Display name should be consistent across multiple calls
+            let first_call = circle.display_name();
+            let second_call = circle.display_name();
+            prop_assert_eq!(first_call, second_call);
+        }
+    }
 }

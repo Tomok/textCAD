@@ -120,6 +120,15 @@ mod tests {
                 .ok_or_else(|| TextCadError::EntityError("Line not found".to_string()))
         }
 
+        fn circle_center_and_radius(
+            &self,
+            _circle_id: crate::entity::CircleId,
+        ) -> Result<(crate::entities::PointId, Real<'_>)> {
+            Err(TextCadError::InvalidConstraint(
+                "Not implemented".to_string(),
+            ))
+        }
+
         fn length_variable(&self, _name: &str) -> Result<Real<'_>> {
             Err(TextCadError::InvalidConstraint(
                 "Not implemented".to_string(),

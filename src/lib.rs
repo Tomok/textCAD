@@ -20,7 +20,7 @@ pub use constraints::{
     CoincidentPointsConstraint, FixedPositionConstraint, LineLengthConstraint,
     ParallelLinesConstraint, PerpendicularLinesConstraint,
 };
-pub use entities::{Line, Point2D, PointId};
+pub use entities::{Circle, Line, Point2D, PointId};
 pub use entity::{CircleId, LineId};
 pub use error::{Result, SolverResult, TextCadError};
 pub use sketch::Sketch;
