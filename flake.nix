@@ -27,6 +27,7 @@
           pkg-config
           clang
           libclang.dev
+          cargo-llvm-cov  # Code coverage tool
         ];
 
         buildInputs = with pkgs; [

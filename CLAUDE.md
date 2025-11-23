@@ -24,6 +24,11 @@ cargo test
 cargo clippy
 cargo fmt
 
+# Generate code coverage reports
+cargo llvm-cov --all-features --workspace --html  # HTML report in target/llvm-cov/html/
+cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info  # LCOV format
+cargo llvm-cov --all-features --workspace --open  # Generate and open HTML report
+
 # With direnv (optional): environment auto-activates when entering directory
 ```
 
@@ -56,6 +61,32 @@ To bypass hooks entirely (not recommended):
 ```bash
 git commit --no-verify -m "your message"
 ```
+
+## Code Coverage
+
+The project uses `cargo-llvm-cov` for code coverage reporting:
+
+```bash
+# Generate HTML coverage report (viewable in browser)
+cargo llvm-cov --all-features --workspace --html
+# Report saved to: target/llvm-cov/html/index.html
+
+# Generate and automatically open HTML report
+cargo llvm-cov --all-features --workspace --open
+
+# Generate LCOV format (for CI/coverage services)
+cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+
+# Generate JSON format
+cargo llvm-cov --all-features --workspace --json --output-path coverage.json
+```
+
+Coverage reports are automatically generated and uploaded to Codecov on every push to main and pull request via the CI pipeline.
+
+**Coverage Goals**:
+- Aim for >80% overall code coverage
+- All public APIs should have test coverage
+- Property-based tests help ensure edge cases are covered
 
 ## Architecture Overview
 
@@ -113,8 +144,11 @@ The project employs multiple testing approaches:
 - **Unit Tests**: Individual component testing
 - **Integration Tests**: Complete workflows (create sketch, add constraints, solve, extract)
 - **Property-Based Tests**: Using `proptest` to verify properties hold for random inputs
+- **Code Coverage**: Measured with `cargo-llvm-cov`, tracked in CI, aiming for >80% coverage
 
 Example property: "For any positive length L, the solver finds a configuration where the line has exactly length L."
+
+Coverage reports help identify untested code paths and ensure comprehensive test suites.
 
 ## Key Files and Modules
 

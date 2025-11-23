@@ -45,3 +45,39 @@ jobs:
       # Format check
       - name: Format check
         run: nix develop --command cargo fmt -- --check
+
+  coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Install Nix
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      # Magic Nix Cache for fast builds
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      # Rust/Cargo Cache
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-coverage-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-coverage-
+            ${{ runner.os }}-cargo-
+
+      # Generate coverage report
+      - name: Generate coverage report
+        run: nix develop --command cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+
+      # Upload to Codecov
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: lcov.info
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
