@@ -4,3 +4,9 @@
 # Nix build artifacts and symlinks
 /result
 textcad-arx
+
+# Code coverage artifacts
+lcov.info
+coverage.json
+*.profraw
+*.profdata
