@@ -2,6 +2,7 @@
 name = "textcad"
 version = "0.1.0"
 edition = "2024"
+license = "MIT"
 
 [dependencies]
 # Z3 with static-link-z3 DISABLED to use system Z3
