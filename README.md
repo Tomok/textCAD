@@ -121,16 +121,66 @@ The Nix environment includes:
 
 This ensures everyone has the exact same development environment, regardless of their operating system.
 
+### Z3 Configuration
+
+TextCAD supports two ways to use the Z3 solver:
+
+#### System Z3 (Default)
+Uses Z3 installed on your system (via Nix or system package manager). This is the default and recommended approach.
+
+```bash
+# Build with system Z3 (default)
+cargo build
+cargo test
+```
+
+**Pros:**
+- Faster compile times
+- Smaller binary size
+- Uses optimized system library
+
+**Cons:**
+- Requires Z3 to be installed on your system
+- Version must be compatible with the z3 crate
+
+#### Vendored Z3
+Builds and statically links Z3 from source as part of the build process.
+
+```bash
+# Build with vendored Z3
+cargo build --features vendored-z3
+cargo test --features vendored-z3
+```
+
+**Pros:**
+- No system Z3 installation required
+- Guaranteed compatible Z3 version
+- Fully self-contained binary
+
+**Cons:**
+- Much slower initial compilation (builds Z3 from source)
+- Larger binary size
+- Requires C++ compiler and build tools
+
+**When to use vendored Z3:**
+- You don't have Z3 installed and can't/don't want to install it
+- You need a portable binary that works on systems without Z3
+- You're having version compatibility issues with system Z3
+
 ## Development
 
 ### Building
 
 ```bash
-# Debug build
+# Debug build (uses system Z3)
 cargo build
 
 # Release build (optimized)
 cargo build --release
+
+# Build with vendored Z3 (if you don't have system Z3)
+cargo build --features vendored-z3
+cargo build --release --features vendored-z3
 ```
 
 ### Testing
@@ -154,14 +204,14 @@ cargo test constraints::
 Generate and view code coverage reports:
 
 ```bash
-# Generate HTML coverage report
-cargo llvm-cov --all-features --workspace --html
+# Generate HTML coverage report (uses system Z3 for faster builds)
+cargo llvm-cov --workspace --html
 
 # View report in browser
-cargo llvm-cov --all-features --workspace --open
+cargo llvm-cov --workspace --open
 
 # Generate LCOV format (for CI/coverage services)
-cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+cargo llvm-cov --workspace --lcov --output-path lcov.info
 ```
 
 Coverage reports are automatically generated and uploaded to [Codecov](https://codecov.io/gh/Tomok/textCAD) on every push to main and pull request.
