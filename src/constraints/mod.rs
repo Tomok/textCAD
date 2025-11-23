@@ -11,4 +11,4 @@ mod property_tests;
 
 // Re-export commonly used constraint types
 pub use basic::{CoincidentPointsConstraint, FixedPositionConstraint};
-pub use line::LineLengthConstraint;
+pub use line::{LineLengthConstraint, ParallelLinesConstraint, PerpendicularLinesConstraint};

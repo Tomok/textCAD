@@ -3,7 +3,9 @@
 //! Provides Line structure with Z3 integration for constraint-based 2D CAD modeling.
 //! Lines are composite entities defined by two endpoint PointIds.
 
-use crate::constraints::LineLengthConstraint;
+use crate::constraints::{
+    LineLengthConstraint, ParallelLinesConstraint, PerpendicularLinesConstraint,
+};
 use crate::entities::PointId;
 use crate::entity::LineId;
 use crate::units::Length;
@@ -101,6 +103,62 @@ impl Line {
     /// ```
     pub fn length_equals(&self, length: Length) -> LineLengthConstraint {
         LineLengthConstraint::new(self.id, length)
+    }
+
+    /// Create a constraint that forces this line to be parallel to another line
+    ///
+    /// # Arguments
+    /// * `other` - The other line to be parallel to
+    ///
+    /// # Returns
+    /// A ParallelLinesConstraint that can be added to the sketch
+    ///
+    /// # Example
+    /// ```
+    /// use textcad::{Line, LineId, PointId, ParallelLinesConstraint};
+    /// use generational_arena::Index;
+    ///
+    /// let line1_id = LineId::from(Index::from_raw_parts(0, 0));
+    /// let line2_id = LineId::from(Index::from_raw_parts(1, 0));
+    /// let start_id = PointId::from(Index::from_raw_parts(0, 0));
+    /// let end_id = PointId::from(Index::from_raw_parts(1, 0));
+    ///
+    /// let line1 = Line::new(line1_id, start_id, end_id, None);
+    /// let line2 = Line::new(line2_id, start_id, end_id, None);
+    ///
+    /// let constraint = line1.parallel_to(&line2);
+    /// // This constraint can now be added to a sketch
+    /// ```
+    pub fn parallel_to(&self, other: &Line) -> ParallelLinesConstraint {
+        ParallelLinesConstraint::new(self.id, other.id)
+    }
+
+    /// Create a constraint that forces this line to be perpendicular to another line
+    ///
+    /// # Arguments
+    /// * `other` - The other line to be perpendicular to
+    ///
+    /// # Returns
+    /// A PerpendicularLinesConstraint that can be added to the sketch
+    ///
+    /// # Example
+    /// ```
+    /// use textcad::{Line, LineId, PointId, PerpendicularLinesConstraint};
+    /// use generational_arena::Index;
+    ///
+    /// let line1_id = LineId::from(Index::from_raw_parts(0, 0));
+    /// let line2_id = LineId::from(Index::from_raw_parts(1, 0));
+    /// let start_id = PointId::from(Index::from_raw_parts(0, 0));
+    /// let end_id = PointId::from(Index::from_raw_parts(1, 0));
+    ///
+    /// let line1 = Line::new(line1_id, start_id, end_id, None);
+    /// let line2 = Line::new(line2_id, start_id, end_id, None);
+    ///
+    /// let constraint = line1.perpendicular_to(&line2);
+    /// // This constraint can now be added to a sketch
+    /// ```
+    pub fn perpendicular_to(&self, other: &Line) -> PerpendicularLinesConstraint {
+        PerpendicularLinesConstraint::new(self.id, other.id)
     }
 }
 
@@ -226,5 +284,61 @@ mod tests {
         // Test with centimeters
         let constraint_cm = line.length_equals(Length::centimeters(100.0));
         assert_eq!(constraint_cm.length.to_meters(), 1.0);
+    }
+
+    #[test]
+    fn test_line_parallel_to_constraint() {
+        let line1_id = LineId::from(Index::from_raw_parts(0, 0));
+        let line2_id = LineId::from(Index::from_raw_parts(1, 0));
+        let start_id = PointId::from(Index::from_raw_parts(0, 0));
+        let end_id = PointId::from(Index::from_raw_parts(1, 0));
+
+        let line1 = Line::new(line1_id, start_id, end_id, Some("line1".to_string()));
+        let line2 = Line::new(line2_id, start_id, end_id, Some("line2".to_string()));
+
+        let constraint = line1.parallel_to(&line2);
+
+        assert_eq!(constraint.line1, line1_id);
+        assert_eq!(constraint.line2, line2_id);
+        assert!(constraint.description().contains("parallel"));
+    }
+
+    #[test]
+    fn test_line_perpendicular_to_constraint() {
+        let line1_id = LineId::from(Index::from_raw_parts(0, 0));
+        let line2_id = LineId::from(Index::from_raw_parts(1, 0));
+        let start_id = PointId::from(Index::from_raw_parts(0, 0));
+        let end_id = PointId::from(Index::from_raw_parts(1, 0));
+
+        let line1 = Line::new(line1_id, start_id, end_id, Some("line1".to_string()));
+        let line2 = Line::new(line2_id, start_id, end_id, Some("line2".to_string()));
+
+        let constraint = line1.perpendicular_to(&line2);
+
+        assert_eq!(constraint.line1, line1_id);
+        assert_eq!(constraint.line2, line2_id);
+        assert!(constraint.description().contains("perpendicular"));
+    }
+
+    #[test]
+    fn test_line_constraint_factories_with_different_lines() {
+        let line1_id = LineId::from(Index::from_raw_parts(0, 0));
+        let line2_id = LineId::from(Index::from_raw_parts(1, 0));
+        let line3_id = LineId::from(Index::from_raw_parts(2, 0));
+        let start_id = PointId::from(Index::from_raw_parts(0, 0));
+        let end_id = PointId::from(Index::from_raw_parts(1, 0));
+
+        let line1 = Line::new(line1_id, start_id, end_id, None);
+        let line2 = Line::new(line2_id, start_id, end_id, None);
+        let line3 = Line::new(line3_id, start_id, end_id, None);
+
+        // Test that different line combinations produce different constraints
+        let parallel_1_2 = line1.parallel_to(&line2);
+        let parallel_1_3 = line1.parallel_to(&line3);
+        let perp_1_2 = line1.perpendicular_to(&line2);
+
+        assert_ne!(parallel_1_2.line2, parallel_1_3.line2);
+        assert_eq!(parallel_1_2.line1, perp_1_2.line1);
+        assert_eq!(parallel_1_2.line2, perp_1_2.line2);
     }
 }

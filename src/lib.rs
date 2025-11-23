@@ -16,7 +16,10 @@ pub mod units;
 
 // Re-export commonly used types
 pub use constraint::{Constraint, ConstraintFactory, SketchQuery};
-pub use constraints::{CoincidentPointsConstraint, FixedPositionConstraint, LineLengthConstraint};
+pub use constraints::{
+    CoincidentPointsConstraint, FixedPositionConstraint, LineLengthConstraint,
+    ParallelLinesConstraint, PerpendicularLinesConstraint,
+};
 pub use entities::{Line, Point2D, PointId};
 pub use entity::{CircleId, LineId};
 pub use error::{Result, SolverResult, TextCadError};
