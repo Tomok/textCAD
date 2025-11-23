@@ -29,6 +29,29 @@ cargo fmt
 
 **Important**: The project is configured to use system Z3 (not compiled from source). The Nix environment provides both Rust toolchain and Z3 with proper environment variables (`Z3_SYS_Z3_HEADER`, `LIBCLANG_PATH`).
 
+## Git Hooks
+
+The repository includes git hooks to maintain code quality:
+
+```bash
+# Install git hooks (one-time setup)
+./hooks/install-hooks.sh
+```
+
+The pre-commit hook performs the following checks:
+- **Code formatting**: Ensures code is formatted with `cargo fmt` (always runs)
+- **Tests**: Runs `cargo test` to verify all tests pass (requires Nix environment)
+
+If you're working outside the Nix environment and want to skip tests:
+```bash
+SKIP_TESTS=1 git commit -m "your message"
+```
+
+To bypass hooks entirely (not recommended):
+```bash
+git commit --no-verify -m "your message"
+```
+
 ## Architecture Overview
 
 The system follows a constraint-based parametric design approach with clear separation between constraint specification and solving:
