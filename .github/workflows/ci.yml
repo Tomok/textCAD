@@ -71,8 +71,9 @@ jobs:
             ${{ runner.os }}-cargo-
 
       # Generate coverage report
+      # Note: Uses default features (system Z3) instead of --all-features to avoid building vendored Z3
       - name: Generate coverage report
-        run: nix develop --command cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+        run: nix develop --command cargo llvm-cov --workspace --lcov --output-path lcov.info
 
       # Upload to Codecov
       - name: Upload coverage to Codecov

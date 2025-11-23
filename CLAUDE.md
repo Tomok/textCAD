@@ -24,15 +24,30 @@ cargo test
 cargo clippy
 cargo fmt
 
-# Generate code coverage reports
-cargo llvm-cov --all-features --workspace --html  # HTML report in target/llvm-cov/html/
-cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info  # LCOV format
-cargo llvm-cov --all-features --workspace --open  # Generate and open HTML report
+# Generate code coverage reports (uses system Z3, not vendored)
+cargo llvm-cov --workspace --html  # HTML report in target/llvm-cov/html/
+cargo llvm-cov --workspace --lcov --output-path lcov.info  # LCOV format
+cargo llvm-cov --workspace --open  # Generate and open HTML report
 
 # With direnv (optional): environment auto-activates when entering directory
 ```
 
-**Important**: The project is configured to use system Z3 (not compiled from source). The Nix environment provides both Rust toolchain and Z3 with proper environment variables (`Z3_SYS_Z3_HEADER`, `LIBCLANG_PATH`).
+**Important**: The project supports two Z3 configuration modes:
+- **System Z3 (default)**: Uses Z3 installed on your system. Faster to compile, requires Z3 to be installed.
+- **Vendored Z3**: Builds and statically links Z3 from source. Slower to compile but doesn't require system Z3.
+
+The Nix environment provides both Rust toolchain and system Z3 with proper environment variables (`Z3_SYS_Z3_HEADER`, `LIBCLANG_PATH`).
+
+```bash
+# Build with system Z3 (default, requires Z3 installed)
+cargo build
+
+# Build with vendored Z3 (builds Z3 from source)
+cargo build --features vendored-z3
+
+# Run tests with vendored Z3
+cargo test --features vendored-z3
+```
 
 ## Git Hooks
 
@@ -68,17 +83,18 @@ The project uses `cargo-llvm-cov` for code coverage reporting:
 
 ```bash
 # Generate HTML coverage report (viewable in browser)
-cargo llvm-cov --all-features --workspace --html
+# Note: Uses default features (system Z3) for faster builds
+cargo llvm-cov --workspace --html
 # Report saved to: target/llvm-cov/html/index.html
 
 # Generate and automatically open HTML report
-cargo llvm-cov --all-features --workspace --open
+cargo llvm-cov --workspace --open
 
 # Generate LCOV format (for CI/coverage services)
-cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+cargo llvm-cov --workspace --lcov --output-path lcov.info
 
 # Generate JSON format
-cargo llvm-cov --all-features --workspace --json --output-path coverage.json
+cargo llvm-cov --workspace --json --output-path coverage.json
 ```
 
 Coverage reports are automatically generated and uploaded to Codecov on every push to main and pull request via the CI pipeline.
@@ -164,7 +180,9 @@ Coverage reports help identify untested code paths and ensure comprehensive test
 ## Development Notes
 
 - Rust edition 2024 is used
-- Z3 crate version 0.12 with `default-features = false` to use system Z3
+- Z3 crate version 0.12 with two configuration modes:
+  - **Default**: Uses system Z3 (`default-features = false`)
+  - **vendored-z3 feature**: Builds Z3 from source (`static-link-z3` feature)
 - Property-based testing with `proptest` crate
 - Generational arena pattern for entity management
 - CI/CD through GitHub Actions with Nix caching
