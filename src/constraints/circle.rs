@@ -37,12 +37,12 @@ impl Constraint for CircleRadiusConstraint {
         })?;
 
         // Create Z3 constant for target radius (in meters)
-        let target_radius_meters = self.radius.as_meters();
+        let target_radius_meters = self.radius.to_meters();
 
         // Convert to rational representation for precision
-        // Use 1,000,000 as denominator for good precision
-        let numerator = (target_radius_meters * 1_000_000.0).round() as i64;
-        let denominator = 1_000_000i64;
+        // Use 10,000 as denominator for good precision (i32 limits)
+        let numerator = (target_radius_meters * 10_000.0).round() as i32;
+        let denominator = 10_000i32;
 
         let target = Real::from_real(context, numerator, denominator);
 
@@ -56,7 +56,7 @@ impl Constraint for CircleRadiusConstraint {
         format!(
             "Circle {:?} has radius {} meters",
             self.circle,
-            self.radius.as_meters()
+            self.radius.to_meters()
         )
     }
 }
@@ -79,7 +79,7 @@ mod tests {
 
         let constraint = CircleRadiusConstraint::new(circle, Length::meters(2.5));
 
-        assert_eq!(constraint.radius.as_meters(), 2.5);
+        assert_eq!(constraint.radius.to_meters(), 2.5);
         assert!(constraint.description().contains("2.5"));
     }
 
@@ -95,7 +95,7 @@ mod tests {
         // 500mm = 0.5m
         let constraint = CircleRadiusConstraint::new(circle, Length::millimeters(500.0));
 
-        assert_eq!(constraint.radius.as_meters(), 0.5);
-        assert_eq!(constraint.radius.as_millimeters(), 500.0);
+        assert_eq!(constraint.radius.to_meters(), 0.5);
+        assert_eq!(constraint.radius.to_millimeters(), 500.0);
     }
 }
