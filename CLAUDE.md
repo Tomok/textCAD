@@ -24,10 +24,10 @@ cargo test
 cargo clippy
 cargo fmt
 
-# Generate code coverage reports
-cargo llvm-cov --all-features --workspace --html  # HTML report in target/llvm-cov/html/
-cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info  # LCOV format
-cargo llvm-cov --all-features --workspace --open  # Generate and open HTML report
+# Generate code coverage reports (uses system Z3, not vendored)
+cargo llvm-cov --workspace --html  # HTML report in target/llvm-cov/html/
+cargo llvm-cov --workspace --lcov --output-path lcov.info  # LCOV format
+cargo llvm-cov --workspace --open  # Generate and open HTML report
 
 # With direnv (optional): environment auto-activates when entering directory
 ```
@@ -83,17 +83,18 @@ The project uses `cargo-llvm-cov` for code coverage reporting:
 
 ```bash
 # Generate HTML coverage report (viewable in browser)
-cargo llvm-cov --all-features --workspace --html
+# Note: Uses default features (system Z3) for faster builds
+cargo llvm-cov --workspace --html
 # Report saved to: target/llvm-cov/html/index.html
 
 # Generate and automatically open HTML report
-cargo llvm-cov --all-features --workspace --open
+cargo llvm-cov --workspace --open
 
 # Generate LCOV format (for CI/coverage services)
-cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+cargo llvm-cov --workspace --lcov --output-path lcov.info
 
 # Generate JSON format
-cargo llvm-cov --all-features --workspace --json --output-path coverage.json
+cargo llvm-cov --workspace --json --output-path coverage.json
 ```
 
 Coverage reports are automatically generated and uploaded to Codecov on every push to main and pull request via the CI pipeline.

@@ -204,14 +204,14 @@ cargo test constraints::
 Generate and view code coverage reports:
 
 ```bash
-# Generate HTML coverage report
-cargo llvm-cov --all-features --workspace --html
+# Generate HTML coverage report (uses system Z3 for faster builds)
+cargo llvm-cov --workspace --html
 
 # View report in browser
-cargo llvm-cov --all-features --workspace --open
+cargo llvm-cov --workspace --open
 
 # Generate LCOV format (for CI/coverage services)
-cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+cargo llvm-cov --workspace --lcov --output-path lcov.info
 ```
 
 Coverage reports are automatically generated and uploaded to [Codecov](https://codecov.io/gh/Tomok/textCAD) on every push to main and pull request.
