@@ -5,6 +5,7 @@
 
 use crate::constraints::{
     LineLengthConstraint, ParallelLinesConstraint, PerpendicularLinesConstraint,
+    PointOnLineConstraint,
 };
 use crate::entities::PointId;
 use crate::entity::LineId;
@@ -159,6 +160,40 @@ impl Line {
     /// ```
     pub fn perpendicular_to(&self, other: &Line) -> PerpendicularLinesConstraint {
         PerpendicularLinesConstraint::new(self.id, other.id)
+    }
+
+    /// Create a constraint that places a point on this line segment using parametric representation
+    ///
+    /// This constraint uses an internal parameter t ∈ [0,1] to place the point anywhere on the line segment.
+    /// The point will be positioned according to: point = start + t * (end - start)
+    /// - When t = 0, the point will be at the line's start
+    /// - When t = 1, the point will be at the line's end
+    /// - When t = 0.5, the point will be at the line's midpoint
+    ///
+    /// # Arguments
+    /// * `point` - The point to constrain to this line
+    ///
+    /// # Returns
+    /// A PointOnLineConstraint that can be added to the sketch
+    ///
+    /// # Example
+    /// ```
+    /// use textcad::entities::{Line, PointId};
+    /// use textcad::entity::LineId;
+    /// use generational_arena::Index;
+    ///
+    /// let line_id = LineId::from(Index::from_raw_parts(0, 0));
+    /// let start_id = PointId::from(Index::from_raw_parts(0, 0));
+    /// let end_id = PointId::from(Index::from_raw_parts(1, 0));
+    /// let point_id = PointId::from(Index::from_raw_parts(2, 0));
+    ///
+    /// let line = Line::new(line_id, start_id, end_id, None);
+    ///
+    /// let constraint = line.point_on_line(point_id);
+    /// // This constraint can now be added to a sketch
+    /// ```
+    pub fn point_on_line(&self, point: PointId) -> PointOnLineConstraint {
+        PointOnLineConstraint::new(self.id, point)
     }
 }
 
@@ -340,5 +375,21 @@ mod tests {
         assert_ne!(parallel_1_2.line2, parallel_1_3.line2);
         assert_eq!(parallel_1_2.line1, perp_1_2.line1);
         assert_eq!(parallel_1_2.line2, perp_1_2.line2);
+    }
+
+    #[test]
+    fn test_line_point_on_line_constraint() {
+        let line_id = LineId::from(Index::from_raw_parts(0, 0));
+        let start_id = PointId::from(Index::from_raw_parts(0, 0));
+        let end_id = PointId::from(Index::from_raw_parts(1, 0));
+        let point_id = PointId::from(Index::from_raw_parts(2, 0));
+
+        let line = Line::new(line_id, start_id, end_id, Some("test_line".to_string()));
+
+        let constraint = line.point_on_line(point_id);
+
+        assert_eq!(constraint.line, line_id);
+        assert_eq!(constraint.point, point_id);
+        assert!(constraint.description().contains("lies on line segment"));
     }
 }

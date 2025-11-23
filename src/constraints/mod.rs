@@ -5,6 +5,7 @@
 
 pub mod basic;
 pub mod line;
+pub mod parametric;
 
 #[cfg(test)]
 mod property_tests;
@@ -12,3 +13,4 @@ mod property_tests;
 // Re-export commonly used constraint types
 pub use basic::{CoincidentPointsConstraint, FixedPositionConstraint};
 pub use line::{LineLengthConstraint, ParallelLinesConstraint, PerpendicularLinesConstraint};
+pub use parametric::PointOnLineConstraint;
