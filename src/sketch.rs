@@ -264,6 +264,59 @@ impl<'ctx> Sketch<'ctx> {
         self.circles.get(id.into())
     }
 
+    /// Get an iterator over all lines in the sketch
+    ///
+    /// Returns an iterator yielding (LineId, &Line) pairs for all lines
+    /// in the sketch. Useful for export and visualization operations.
+    ///
+    /// # Example
+    /// ```
+    /// use z3::{Config, Context};
+    /// use textcad::Sketch;
+    ///
+    /// let cfg = Config::new();
+    /// let ctx = Context::new(&cfg);
+    /// let mut sketch = Sketch::new(&ctx);
+    /// let p1 = sketch.add_point(None);
+    /// let p2 = sketch.add_point(None);
+    /// sketch.add_line(p1, p2, Some("line1".to_string()));
+    ///
+    /// for (id, line) in sketch.lines() {
+    ///     println!("Line: {:?}", line.name);
+    /// }
+    /// ```
+    pub fn lines(&self) -> impl Iterator<Item = (LineId, &Line)> {
+        self.lines
+            .iter()
+            .map(|(idx, line)| (LineId::from(idx), line))
+    }
+
+    /// Get an iterator over all circles in the sketch
+    ///
+    /// Returns an iterator yielding (CircleId, &Circle) pairs for all circles
+    /// in the sketch. Useful for export and visualization operations.
+    ///
+    /// # Example
+    /// ```
+    /// use z3::{Config, Context};
+    /// use textcad::Sketch;
+    ///
+    /// let cfg = Config::new();
+    /// let ctx = Context::new(&cfg);
+    /// let mut sketch = Sketch::new(&ctx);
+    /// let center = sketch.add_point(None);
+    /// sketch.add_circle(center, Some("circle1".to_string()));
+    ///
+    /// for (id, circle) in sketch.circles() {
+    ///     println!("Circle: {:?}", circle.name);
+    /// }
+    /// ```
+    pub fn circles(&self) -> impl Iterator<Item = (CircleId, &Circle<'ctx>)> {
+        self.circles
+            .iter()
+            .map(|(idx, circle)| (CircleId::from(idx), circle))
+    }
+
     /// Add a constraint to the sketch
     pub fn add_constraint(&mut self, constraint: impl Constraint + 'static) {
         self.constraints.push(Box::new(constraint));

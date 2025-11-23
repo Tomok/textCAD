@@ -9,6 +9,7 @@ pub mod constraints;
 pub mod entities;
 pub mod entity;
 pub mod error;
+pub mod export;
 pub mod sketch;
 pub mod solution;
 pub mod solver;
@@ -23,6 +24,7 @@ pub use constraints::{
 pub use entities::{Circle, Line, Point2D, PointId};
 pub use entity::{CircleId, LineId};
 pub use error::{Result, SolverResult, TextCadError};
+pub use export::{Exporter, SVGExporter};
 pub use sketch::Sketch;
 pub use solution::{CircleParameters, LineParameters, Solution};
 pub use units::{Angle, Area, Length};

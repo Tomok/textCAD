@@ -1424,12 +1424,12 @@ fn prop_angle_symmetry(angle_deg: f64) {
 
 ---
 
-### Phase 12: SVG Export - Basics
+### Phase 12: SVG Export - Basics ✅ COMPLETED
 
 **Deliverables:**
-- Export trait
-- SVGExporter with fixed defaults
-- Coordinate transformation (meters → SVG units)
+- ✅ Export trait
+- ✅ SVGExporter with fixed defaults
+- ✅ Coordinate transformation (meters → SVG units)
 
 **Implementation:**
 
@@ -1540,10 +1540,10 @@ impl Exporter for SVGExporter {
 ```
 
 **Tests:**
-- [ ] Export sketch with single line to valid SVG
-- [ ] Export sketch with circle to valid SVG
-- [ ] SVG can be opened in browser (smoke test)
-- [ ] Coordinate transformation is correct
+- [x] Export sketch with single line to valid SVG
+- [x] Export sketch with circle to valid SVG
+- [x] SVG can be opened in browser (smoke test)
+- [x] Coordinate transformation is correct
 
 **Integration Test:**
 ```rust
