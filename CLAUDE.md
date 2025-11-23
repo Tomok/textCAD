@@ -38,11 +38,16 @@ The repository includes git hooks to maintain code quality:
 ./hooks/install-hooks.sh
 ```
 
-The pre-commit hook performs the following checks:
+The pre-commit hook performs the following checks and **will reject commits** if they fail:
 - **Code formatting**: Ensures code is formatted with `cargo fmt` (always runs)
 - **Tests**: Runs `cargo test` to verify all tests pass (requires Nix environment)
 
-If you're working outside the Nix environment and want to skip tests:
+**Important**: The hook will block commits if:
+- Code is not properly formatted
+- Tests fail
+- Tests cannot run (Z3 environment not available)
+
+To temporarily skip tests (e.g., when working outside Nix environment):
 ```bash
 SKIP_TESTS=1 git commit -m "your message"
 ```
