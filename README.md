@@ -3,7 +3,7 @@
 [![CI](https://github.com/Tomok/textCAD/actions/workflows/ci.yml/badge.svg)](https://github.com/Tomok/textCAD/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/Tomok/textCAD/branch/main/graph/badge.svg)](https://codecov.io/gh/Tomok/textCAD)
 [![Rust Edition](https://img.shields.io/badge/rust-2024-orange.svg)](https://www.rust-lang.org)
-[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 A constraint-based 2D CAD system built in Rust using Z3 as the constraint solver. TextCAD provides a declarative API for geometric constraint specification while leveraging industrial-strength satisfiability technology for solving.
 
@@ -287,12 +287,7 @@ Contributions are welcome! Please ensure:
 
 ## License
 
-This project is dual-licensed under either:
-
-- MIT License ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
-- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
-
-at your option.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
