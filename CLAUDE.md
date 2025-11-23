@@ -62,7 +62,7 @@ The system uses newtype wrappers for type-safe physical quantities:
 
 ## Implementation Phases
 
-The project follows a phased implementation approach (see IMPLEMENTATION_PLAN.md):
+The project follows a phased implementation approach (see docs/IMPLEMENTATION_PLAN.md for details and docs/ARCHITECTURE.md for architectural documentation):
 
 **Phase 1** ✅: Infrastructure (Nix + CI) - COMPLETED
 **Phase 2**: Rust Foundation (units, error types, traits)
